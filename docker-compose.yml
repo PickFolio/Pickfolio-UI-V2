@@ -1,0 +1,17 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: pickfolio-ui-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Sync our local code to /app in the container
+      - .:/app
+      # Use a dedicated, named volume for node_modules
+      - node_modules_data:/app/node_modules
+
+# Define the named volume at the bottom
+volumes:
+  node_modules_data:
