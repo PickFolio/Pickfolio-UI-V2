@@ -9,6 +9,8 @@ import Modal from './Modal';
 import CreateContestForm from './CreateContestForm';
 import JoinContestForm from './JoinContestForm';
 import { getMyContests, joinContestByCode } from '../services/contestService';
+import formStyles from './Form.module.css'
+import { createContest } from '../services/contestService';
 
 const CONTEST_API_URL = import.meta.env.VITE_CONTEST_API_URL;
 
@@ -79,9 +81,16 @@ const ContestLobby = () => {
     const [myContests, setMyContests] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
+    const [newlyCreatedContest, setNewlyCreatedContest] = useState(null);
+
+    const handleCloseCreateModal = () => {
+        setShowCreateModal(false);
+        setNewlyCreatedContest(null); // Reset the state when closing
+    };
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -105,11 +114,6 @@ const ContestLobby = () => {
         navigate(`/contest/${contestId}`);
     };
 
-    const handleCreationSuccess = () => {
-        setShowCreateModal(false);
-        fetchData(); // Just close the modal and refresh the data
-    };
-
     const handleJoinContest = async (inviteCode) => {
         setIsJoining(true);
         const promise = joinContestByCode(authFetch, inviteCode);
@@ -128,6 +132,25 @@ const ContestLobby = () => {
             console.error("Failed to join contest:", error)
         } finally {
             setIsJoining(false);
+        }
+    };
+
+    const handleCreateContest = async (contestData) => {
+        setIsCreating(true);
+        try {
+            const newContest = await createContest(authFetch, contestData);
+            toast.success(`Contest "${newContest.name}" created!`);
+            fetchData(); // Refresh the lobby list in the background
+
+            if (newContest.isPrivate) {
+                setNewlyCreatedContest(newContest); // This will show the ShareCodeView
+            } else {
+                handleCloseCreateModal(); // Close modal immediately for public contests
+            }
+        } catch (err) {
+            toast.error(err.message || 'Failed to create contest.');
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -171,13 +194,18 @@ const ContestLobby = () => {
 
             <Modal 
               isOpen={showCreateModal} 
-              onClose={() => setShowCreateModal(false)} 
-              title="Create a New Contest"
+              onClose={handleCloseCreateModal} 
+              title={newlyCreatedContest ? "Share Your Invite Code" : "Create a New Contest"}
             >
-                <CreateContestForm 
-                    onSuccess={handleCreationSuccess}
-                    onCancel={() => setShowCreateModal(false)}
-                />
+                {newlyCreatedContest ? (
+                    <ShareCodeView contest={newlyCreatedContest} onDone={handleCloseCreateModal} />
+                ) : (
+                    <CreateContestForm 
+                        onSubmit={handleCreateContest} 
+                        onCancel={handleCloseCreateModal} 
+                        isLoading={isCreating}
+                    />
+                )}
             </Modal>
 
             <Modal
@@ -191,6 +219,28 @@ const ContestLobby = () => {
                     isLoading={isJoining}
                 />
             </Modal>
+        </div>
+    );
+};
+
+const ShareCodeView = ({ contest, onDone }) => {
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(contest.inviteCode).then(() => {
+            toast.success('Invite code copied!');
+        });
+    };
+
+    return (
+        <div className={formStyles.shareContainer}>
+            <h3 className={formStyles.shareTitle}>Private Contest Created!</h3>
+            <p className={formStyles.shareSubtitle}>Share this code with your friends:</p>
+            <div className={formStyles.shareCodeBox}>
+                <span className={formStyles.shareCode}>{contest.inviteCode}</span>
+                <button onClick={copyToClipboard} className={formStyles.copyButton}>
+                    {/* ... (copy icon svg) ... */}
+                </button>
+            </div>
+            <button onClick={onDone} className={formStyles.button}>Done</button>
         </div>
     );
 };
