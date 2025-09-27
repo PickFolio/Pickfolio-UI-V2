@@ -266,3 +266,33 @@
 .dropdownItem:hover {
     background-color: var(--primary-color);
 }
+
+@media (max-width: 1024px) {
+    .mainGrid {
+      /* Stack the columns */
+      grid-template-columns: 1fr;
+    }
+    
+    .rightColumn {
+      /* Ensure leaderboard appears after the portfolio/trade widgets */
+      grid-row: 2;
+    }
+  }
+  
+  /* For mobile phones */
+  @media (max-width: 768px) {
+    .container {
+      padding: 1rem;
+    }
+  
+    .summaryGrid {
+        /* Make the portfolio summary a 2x2 grid */
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+  
+    .tradeGrid {
+      /* Stack the trade inputs vertically for easier use */
+      grid-template-columns: 1fr;
+    }
+  }

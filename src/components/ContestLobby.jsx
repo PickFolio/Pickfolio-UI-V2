@@ -12,15 +12,64 @@ import { getMyContests, joinContestByCode } from '../services/contestService';
 
 const CONTEST_API_URL = import.meta.env.VITE_CONTEST_API_URL;
 
-const ContestCard = ({ contest, onView }) => (
-    <div className={styles.card}>
-        <h3 className={styles.cardTitle}>{contest.name}</h3>
-        <p>Players: {contest.currentParticipants}/{contest.maxParticipants}</p>
-        <button onClick={() => onView(contest.id)} className={styles.button}>
-            View Contest
-        </button>
-    </div>
-);
+const ContestCard = ({ contest, userId, onView }) => {
+    const isCreator = contest.creatorId === userId;
+
+    // Helper function to format date and time
+    const formatDateTime = (isoString) => {
+        return new Date(isoString).toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true
+        });
+    };
+
+    // Helper function to format the budget
+    const formatBudget = (value) => {
+        const num = Number(value);
+        if (num >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
+        if (num >= 100000) return `₹${(num / 100000).toFixed(2)} Lac`;
+        return `₹${num.toLocaleString('en-IN')}`;
+    };
+
+    return (
+        <div className={styles.card}>
+            <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>{contest.name}</h3>
+                {contest.isPrivate && (
+                    <span className={styles.privateBadge}>Private</span>
+                )}
+            </div>
+
+            <div className={styles.cardDetails}>
+                <p>
+                    <span className={styles.detailIcon}>💰</span>
+                    Budget: <strong>{formatBudget(contest.virtualBudget)}</strong>
+                </p>
+                <p>
+                    <span className={styles.detailIcon}>▶️</span>
+                    Starts: <strong>{formatDateTime(contest.startTime)}</strong>
+                </p>
+                <p>
+                    <span className={styles.detailIcon}>⏹️</span>
+                    Ends: <strong>{formatDateTime(contest.endTime)}</strong>
+                </p>
+            </div>
+            
+            <div className={styles.cardFooter}>
+                <span>👥 {contest.currentParticipants}/{contest.maxParticipants} Players</span>
+            </div>
+
+            {isCreator && contest.isPrivate && (
+                <div className={styles.inviteCodeBox}>
+                    Invite Code: <span className={styles.inviteCode}>{contest.inviteCode}</span>
+                </div>
+            )}
+
+            <button onClick={() => onView(contest.id)} className={styles.button}>
+                View Contest
+            </button>
+        </div>
+    );
+};
 
 const ContestLobby = () => {
     const navigate = useNavigate();
@@ -106,7 +155,12 @@ const ContestLobby = () => {
                     {myContests.length > 0 ? (
                         <div className={styles.grid}>
                             {myContests.map(contest => (
-                                <ContestCard key={contest.id} contest={contest} onView={handleViewContest} />
+                                <ContestCard 
+                                    key={contest.id} 
+                                    contest={contest} 
+                                    userId={userId} // Pass the userId here
+                                    onView={handleViewContest} 
+                                />
                             ))}
                         </div>
                     ) : (

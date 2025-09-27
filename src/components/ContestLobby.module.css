@@ -31,10 +31,20 @@
 }
 
 .card {
-    background-color: #1f2937;
-    border-radius: 0.75rem;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
     padding: 1.5rem;
-    border: 1px solid #374151;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem; /* Increased gap for more details */
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
 }
 
 .cardTitle {
@@ -78,3 +88,93 @@
 .secondary:hover {
     background-color: #374151; /* Gray 700 */
 }
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.privateBadge {
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.cardDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+}
+
+.cardDetails p {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+}
+
+.cardDetails strong {
+    color: var(--text-primary);
+    margin-left: 0.5rem;
+}
+
+.detailIcon {
+    margin-right: 0.75rem;
+}
+
+.cardFooter {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.inviteCodeBox {
+    background-color: #0f172a; /* Slate 900 */
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.inviteCode {
+    font-family: monospace;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-left: 0.5rem;
+    letter-spacing: 2px;
+}
+
+@media (max-width: 768px) {
+    .lobbyContainer {
+      padding: 1rem;
+    }
+  
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+  
+    .header > div {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    
+    .header .logout {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+        justify-self: end;
+    }
+  
+    .grid {
+      gap: 1rem;
+    }
+  }

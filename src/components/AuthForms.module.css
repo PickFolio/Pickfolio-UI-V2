@@ -110,3 +110,12 @@
     margin-bottom: 1rem;
     text-align: center;
 }
+
+@media (max-width: 480px) {
+    .title {
+      font-size: 1.75rem; /* Make title slightly smaller on very small screens */
+    }
+    .formBox {
+      padding: 1.5rem;
+    }
+  }
