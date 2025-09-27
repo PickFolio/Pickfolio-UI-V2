@@ -66,16 +66,7 @@ export const RegistrationPage = ({ onRegisterSuccess, onSwitchToLogin }) => {
        setIsLoading(true);
        setError(null);
        try {
-           const response = await fetch(`${AUTH_API_URL}/register`, {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ name, username, password }),
-           });
-           if (!response.ok) {
-               const data = await response.json();
-               throw new Error(data.message || 'Registration failed');
-           }
-           onRegisterSuccess();
+           await onRegisterSuccess({ name, username, password });
        } catch (err) {
            setError(err.message);
        } finally {

@@ -24,3 +24,17 @@ export const executeTransaction = async (authFetch, contestId, { stockSymbol, tr
         body: JSON.stringify({ stockSymbol, transactionType, quantity }),
     });
 };
+
+export const createContest = async (authFetch, contestData) => {
+  return await authFetch(`${CONTEST_API_URL}/create`, {
+      method: 'POST',
+      body: JSON.stringify(contestData),
+  });
+};
+
+export const joinContestByCode = async (authFetch, inviteCode) => {
+  return await authFetch(`${CONTEST_API_URL}/join-by-code`, {
+      method: 'POST',
+      body: JSON.stringify({ inviteCode }),
+  });
+};

@@ -4,6 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
 import Spinner from './Spinner';
 import styles from './ContestLobby.module.css';
+import toast from 'react-hot-toast';
+import Modal from './Modal';
+import CreateContestForm from './CreateContestForm';
+import JoinContestForm from './JoinContestForm';
+import { getMyContests, joinContestByCode } from '../services/contestService';
 
 const CONTEST_API_URL = import.meta.env.VITE_CONTEST_API_URL;
 
@@ -25,6 +30,9 @@ const ContestLobby = () => {
     const [myContests, setMyContests] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
+    const [showJoinModal, setShowJoinModal] = useState(false);
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -48,11 +56,45 @@ const ContestLobby = () => {
         navigate(`/contest/${contestId}`);
     };
 
+    const handleCreationSuccess = () => {
+        setShowCreateModal(false);
+        fetchData(); // Just close the modal and refresh the data
+    };
+
+    const handleJoinContest = async (inviteCode) => {
+        setIsJoining(true);
+        const promise = joinContestByCode(authFetch, inviteCode);
+
+        try {
+            await toast.promise(promise, {
+                loading: 'Joining contest...',
+                success: () => {
+                    setShowJoinModal(false);
+                    fetchData(); // Refresh the list of contests
+                    return `Successfully joined contest!`;
+                },
+                error: (err) => err.message || 'Failed to join contest.',
+            });
+        } catch (error) {
+            console.error("Failed to join contest:", error)
+        } finally {
+            setIsJoining(false);
+        }
+    };
+
     return (
         <div className={styles.lobbyContainer}>
             <header className={styles.header}>
                 <h1 className={styles.title}>Contest Lobby</h1>
-                <button onClick={logout} className={styles.button}>Logout</button>
+                <div>
+                    <button onClick={() => setShowJoinModal(true)} className={`${styles.button} ${styles.secondary}`}>
+                        Join with Code
+                    </button>
+                    <button onClick={() => setShowCreateModal(true)} className={styles.button}>
+                        Create Contest
+                    </button>
+                    <button onClick={logout} className={styles.button}>Logout</button>
+                </div>
             </header>
 
             {isLoading && <Spinner />}
@@ -72,6 +114,29 @@ const ContestLobby = () => {
                     )}
                 </>
             )}
+
+            <Modal 
+              isOpen={showCreateModal} 
+              onClose={() => setShowCreateModal(false)} 
+              title="Create a New Contest"
+            >
+                <CreateContestForm 
+                    onSuccess={handleCreationSuccess}
+                    onCancel={() => setShowCreateModal(false)}
+                />
+            </Modal>
+
+            <Modal
+              isOpen={showJoinModal}
+              onClose={() => setShowJoinModal(false)}
+              title="Join a Private Contest"
+            >
+                <JoinContestForm
+                    onSubmit={handleJoinContest}
+                    onCancel={() => setShowJoinModal(false)}
+                    isLoading={isJoining}
+                />
+            </Modal>
         </div>
     );
 };
