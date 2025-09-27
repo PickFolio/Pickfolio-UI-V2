@@ -48,3 +48,221 @@
 .error {
     color: #f87171;
 }
+
+.widgetTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+/* Portfolio Styles */
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.summaryLabel {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.summaryValue {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.holdingsTitle {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.tableContainer table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: right;
+}
+
+.tableContainer th {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.tableContainer th:first-child {
+    text-align: left;
+}
+
+.tableContainer td {
+    padding: 0.75rem 0.5rem;
+}
+.tableContainer td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+.tableContainer tbody tr:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+.tableContainer tbody td[colspan="4"] {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+/* Leaderboard Styles */
+.leaderboardList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.leaderboardItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(15, 23, 42, 0.5);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.leaderboardItemYou {
+    composes: leaderboardItem;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.leaderboardRank {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.leaderboardName {
+    font-weight: 500;
+}
+
+.leaderboardValue {
+    font-weight: 600;
+}
+
+
+/* Trade Widget Styles */
+.tradeGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.input {
+    background-color: rgba(15, 23, 42, 0.5);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.tradeButtons {
+    display: flex;
+}
+.tradeButtons .button {
+    flex-grow: 1;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+}
+.tradeButtons .button:first-child {
+    border-radius: 0.5rem 0 0 0.5rem;
+}
+.tradeButtons .button:last-child {
+    border-radius: 0 0.5rem 0.5rem 0;
+    border-left: none;
+}
+.buyActive {
+    background-color: #166534 !important; /* Green */
+    border-color: #166534 !important;
+}
+.sellActive {
+    background-color: #991b1b !important; /* Red */
+    border-color: #991b1b !important;
+}
+.executeButton {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+}
+.executeButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.errorBox {
+    /* same as AuthForms error box */
+}
+
+
+/* Utility Text Colors */
+.textGreen { color: #4ade80; }
+.textRed { color: #f87171; }
+.textNeutral { color: var(--text-secondary); }
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.inputLabel {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.tradeGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr;
+    gap: 1rem;
+    align-items: flex-end; /* Aligns labels and inputs nicely */
+}
+
+/* Dropdown specific styles */
+.dropdownContainer {
+    position: relative;
+}
+
+.dropdownList {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    background-color: #334155; /* Slate 700 */
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin-top: 0.25rem;
+    max-height: 12rem; /* 192px */
+    overflow-y: auto;
+    list-style: none;
+    padding: 0;
+}
+
+.dropdownItem {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdownItem:hover {
+    background-color: var(--primary-color);
+}

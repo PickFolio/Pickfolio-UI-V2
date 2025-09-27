@@ -1,0 +1,112 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+
+.authBox {
+    width: 100%;
+    max-width: 24rem; /* 384px */
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 2.25rem; /* 36px */
+    font-weight: 900;
+    color: var(--primary-color);
+}
+
+.subtitle {
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.formBox {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 1.5rem; /* 24px */
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.input {
+    background-color: rgba(15, 23, 42, 0.5); /* Slate 900 with opacity */
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem; /* 8px */
+    padding: 0.75rem 1rem;
+    width: 100%;
+    box-sizing: border-box; /* Important for padding */
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.button {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.switchText {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem; /* 14px */
+    margin-top: 1.5rem;
+}
+
+.switchButton {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.error {
+    background-color: rgba(127, 29, 29, 0.5);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}

@@ -1,0 +1,126 @@
+/* ===== General Page ===== */
+.login-page {
+    min-height: 100vh;
+    background-color: #111827; /* Tailwind bg-gray-900 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
+  
+  .login-container {
+    width: 100%;
+    max-width: 24rem; /* same as max-w-sm */
+  }
+  
+  /* ===== Header ===== */
+  .login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .app-title {
+    font-size: 2.25rem; /* text-4xl */
+    font-weight: 900;
+    color: #14b8a6; /* text-teal-400 */
+  }
+  
+  .subtitle {
+    color: #9ca3af; /* text-gray-400 */
+    margin-top: 0.5rem;
+  }
+  
+  /* ===== Login Box ===== */
+  .login-box {
+    background-color: #1f2937; /* bg-gray-800 */
+    padding: 2rem;
+    border-radius: 1rem; /* rounded-2xl */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+                0 10px 10px -5px rgba(0, 0, 0, 0.4); /* shadow-2xl */
+  }
+  
+  /* ===== Error Message ===== */
+  .error-message {
+    background-color: #7f1d1d; /* bg-red-900 */
+    border: 1px solid #b91c1c; /* border-red-700 */
+    color: #fca5a5; /* text-red-300 */
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* ===== Form Elements ===== */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    display: block;
+    color: #9ca3af; /* text-gray-400 */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+  
+  .form-input {
+    background-color: #374151; /* bg-gray-700 */
+    color: white;
+    border: 1px solid #4b5563; /* border-gray-600 */
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    appearance: none;
+    line-height: normal;
+    outline: none;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .form-input:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5);
+  }
+  
+  /* ===== Submit Button ===== */
+  .submit-button {
+    width: 100%;
+    background-color: #0d9488; /* bg-teal-600 */
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .submit-button:hover {
+    background-color: #0f766e; /* hover:bg-teal-700 */
+  }
+  
+  .submit-button:disabled {
+    background-color: #134e4a; /* disabled:bg-teal-800 */
+    cursor: not-allowed;
+  }
+  
+  /* ===== Register Link ===== */
+  .register-text {
+    text-align: center;
+    color: #6b7280; /* text-gray-500 */
+    font-size: 0.875rem;
+    margin-top: 1.5rem;
+  }
+  
+  .register-button {
+    background: none;
+    border: none;
+    color: #14b8a6; /* text-teal-400 */
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  
+  .register-button:hover {
+    color: #2dd4bf; /* hover:text-teal-300 */
+  }
+  
