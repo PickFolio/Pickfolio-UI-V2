@@ -15,10 +15,25 @@ function AuthPage() {
     navigate('/'); // Redirect to the homepage
   };
 
+  const handleRegister = async (registrationData) => {
+    // Use a promise toast for async operations
+    await toast.promise(
+      registerUser(registrationData),
+      {
+        loading: 'Creating account...',
+        success: () => {
+          setIsRegistering(false); // Switch to login on success
+          return <b>Registration successful! Please log in.</b>;
+        },
+        error: (err) => <b>{err.message || 'Registration failed.'}</b>,
+      }
+    );
+  };
+
   if (isRegistering) {
     return (
       <RegistrationPage
-        onRegisterSuccess={() => setIsRegistering(false)}
+        onRegisterSuccess={handleRegister}
         onSwitchToLogin={() => setIsRegistering(false)}
       />
     );

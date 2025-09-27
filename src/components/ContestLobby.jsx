@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
-// We'll add some basic styles to make it usable
+import Spinner from './Spinner';
 import styles from './ContestLobby.module.css';
 
 const CONTEST_API_URL = import.meta.env.VITE_CONTEST_API_URL;
@@ -55,7 +55,7 @@ const ContestLobby = () => {
                 <button onClick={logout} className={styles.button}>Logout</button>
             </header>
 
-            {isLoading && <p>Loading contests...</p>}
+            {isLoading && <Spinner />}
             {error && <p className={styles.error}>Could not load contests: {error}</p>}
 
             {!isLoading && !error && (

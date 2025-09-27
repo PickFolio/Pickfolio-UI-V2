@@ -5,6 +5,8 @@ import useAuthFetch from '../hooks/useAuthFetch';
 import { getPortfolio, getLeaderboard, executeTransaction } from '../services/contestService';
 import { Client as StompClient } from '@stomp/stompjs';
 import styles from './ContestView.module.css';
+import toast from 'react-hot-toast';
+import Spinner from './Spinner';
 
 const CONTEST_WS_URL = import.meta.env.VITE_CONTEST_WS_URL;
 
@@ -117,29 +119,24 @@ const TradeWidget = ({ contestId, onTransactionSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        try {
-            const { error: apiError } = await authFetch(`${CONTEST_API_URL}/${contestId}/transactions`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    stockSymbol: symbol.toUpperCase() + '.NS',
-                    transactionType: tradeType,
-                    quantity: parseInt(quantity, 10),
-                })
-            });
-            if (apiError) throw new Error(apiError);
 
-            alert(`Successfully ${tradeType === 'BUY' ? 'bought' : 'sold'} ${quantity} share(s) of ${symbol.toUpperCase()}.`);
-            setSymbol('');
-            setSearchTerm('');
-            setQuantity('1');
-            onTransactionSuccess();
-        } catch(err) {
-            setError(err.message || 'Transaction failed.');
-        } finally {
-            setIsLoading(false);
-        }
+        const promise = executeTransaction(authFetch, contestId, {
+            stockSymbol: symbol.toUpperCase() + '.NS',
+            transactionType: tradeType,
+            quantity: parseInt(quantity, 10),
+        });
+
+        await toast.promise(promise, {
+            loading: 'Processing transaction...',
+            success: () => {
+                setSymbol('');
+                setSearchTerm('');
+                setQuantity('1');
+                onTransactionSuccess(); // Refresh data
+                return <b>Transaction successful!</b>;
+            },
+            error: (err) => <b>{err.message || 'Transaction failed.'}</b>,
+        });
     };
 
     return (
@@ -261,7 +258,11 @@ const ContestView = ({ contestId }) => {
         };
     }, [contestId, tokens]);
 
-    if (isLoading) return <p>Loading Contest...</p>;
+    if (isLoading) return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+            <Spinner />
+        </div>
+    );
     if (error) return <p className={styles.error}>Error: {error}</p>;
 
     return (
