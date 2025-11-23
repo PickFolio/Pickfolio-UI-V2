@@ -31,3 +31,18 @@ export const registerUser = async ({ name, username, password }) => {
 
   return { success: true };
 };
+
+export const refreshAccessToken = async (refreshToken, deviceInfo) => {
+  const response = await fetch(import.meta.env.VITE_AUTH_API_URL + '/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken, deviceInfo }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to refresh token');
+  }
+
+  return await response.json(); // Returns { accessToken, refreshToken }
+};

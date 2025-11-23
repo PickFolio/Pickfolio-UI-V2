@@ -5,7 +5,10 @@ export const getMyContests = async (authFetch) => {
   return await authFetch(`${CONTEST_API_URL}/my-contests`);
 };
 
-// --- ADD THESE NEW FUNCTIONS ---
+// Fetches all open, public contests
+export const getOpenPublicContests = async (authFetch) => {
+  return await authFetch(`${CONTEST_API_URL}/open-public-contests`);
+};
 
 // Fetches the user's portfolio for a specific contest
 export const getPortfolio = async (authFetch, contestId) => {
@@ -30,6 +33,14 @@ export const createContest = async (authFetch, contestData) => {
       method: 'POST',
       body: JSON.stringify(contestData),
   });
+};
+
+// Join a public contest by ID
+export const joinContest = async (authFetch, contestId) => {
+    return await authFetch(`${CONTEST_API_URL}/join`, {
+        method: 'POST',
+        body: JSON.stringify({ contestId }), // inviteCode is null for public contests
+    });
 };
 
 export const joinContestByCode = async (authFetch, inviteCode) => {
