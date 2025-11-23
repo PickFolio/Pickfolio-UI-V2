@@ -22,12 +22,13 @@ const ContestCard = ({ contest, userId, onAction, actionLabel, isProcessing }) =
 
     // Helper function to format date and time
     const formatDateTime = (isoString) => {
-        return new Date(isoString).toLocaleString('en-IN', {
+        if (!isoString) return '';
+        const dateStr = isoString.endsWith('Z') ? isoString : `${isoString}Z`;
+        return new Date(dateStr).toLocaleString('en-IN', {
             day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true
         });
     };
 
-    // Helper function to format the budget
     const formatBudget = (value) => {
         const num = Number(value);
         if (num >= 10000000) return `₹${(num / 10000000).toFixed(2)} Cr`;
@@ -35,19 +36,16 @@ const ContestCard = ({ contest, userId, onAction, actionLabel, isProcessing }) =
         return `₹${num.toLocaleString('en-IN')}`;
     };
 
-    // Determine status color badge
     let statusBadge = null;
     if (contest.status === 'LIVE') {
-        statusBadge = <span style={{ backgroundColor: '#22c55e', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '999px', fontWeight: 'bold' }}>LIVE</span>;
-    } else if (contest.status === 'COMPLETED') {
-        statusBadge = <span style={{ backgroundColor: '#64748b', color: '#fff', fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '999px' }}>Ended</span>;
+        statusBadge = <span className={styles.liveBadge}>LIVE</span>;
     }
 
     return (
         <div className={styles.card}>
             <div className={styles.cardHeader}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <h3 className={styles.cardTitle} style={{ marginBottom: 0 }}>{contest.name}</h3>
+                <div className={styles.titleWrapper}>
+                    <h3 className={styles.cardTitle}>{contest.name}</h3>
                     {statusBadge}
                 </div>
                 {contest.isPrivate && (
@@ -65,6 +63,7 @@ const ContestCard = ({ contest, userId, onAction, actionLabel, isProcessing }) =
                 <span>👥 {contest.currentParticipants}/{contest.maxParticipants} Players</span>
             </div>
 
+            {/* Only show invite code for OPEN private contests where you are the creator */}
             {isCreator && contest.isPrivate && contest.status === 'OPEN' && (
                 <div className={styles.inviteCodeBox}>
                     Invite Code: <span className={styles.inviteCode}>{contest.inviteCode}</span>
@@ -126,13 +125,20 @@ const ContestLobby = () => {
         fetchData();
     }, [fetchData]);
 
-    // --- Categorize Contests ---
+    // --- Sort and Categorize Contests ---
     const { live, upcoming, history } = useMemo(() => {
+        // Sorting Logic: Newest Start Time first
+        const sorted = [...myContests].sort((a, b) => {
+            const dateA = new Date(a.startTime);
+            const dateB = new Date(b.startTime);
+            return dateB - dateA; // Descending
+        });
+
         const live = [];
         const upcoming = [];
         const history = [];
 
-        myContests.forEach(c => {
+        sorted.forEach(c => {
             if (c.status === 'LIVE') live.push(c);
             else if (c.status === 'OPEN') upcoming.push(c);
             else history.push(c); // COMPLETED or CANCELLED

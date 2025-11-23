@@ -38,7 +38,7 @@
     border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: 1.25rem; /* Increased gap for more details */
+    gap: 1.25rem;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -50,7 +50,7 @@
 .cardTitle {
     font-size: 1.25rem;
     font-weight: bold;
-    margin-bottom: 1rem;
+    margin: 0; /* Remove margin to align with badges */
 }
 
 .button {
@@ -82,17 +82,17 @@
 }
 
 .secondary {
-    background-color: #4b5563; /* Gray 600 */
+    background-color: #374151;
 }
 
 .secondary:hover {
-    background-color: #374151; /* Gray 700 */
+    background-color: #4b5563;
 }
 
 .cardHeader {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center; /* Fix: Vertically align badges with text */
 }
 
 .privateBadge {
@@ -102,6 +102,7 @@
     font-weight: 600;
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
+    white-space: nowrap;
 }
 
 .cardDetails {
@@ -177,7 +178,7 @@
     .grid {
       gap: 1rem;
     }
-  }
+}
 
 .collapsibleHeader {
     display: flex;
@@ -205,8 +206,7 @@
 }
 
 .liveSection {
-    /* Optional: Add a subtle glow or border for live contests */
-    background: rgba(99, 102, 241, 0.1); /* Tint of primary color */
+    background: rgba(99, 102, 241, 0.1); /* Tint of Indigo */
     border-radius: 1rem;
     padding: 1.5rem;
     margin-bottom: 2rem;
@@ -216,4 +216,30 @@
 .emptyState {
     color: var(--text-secondary);
     font-style: italic;
+}
+
+.titleWrapper {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Badge Styles */
+
+
+.liveBadge {
+    background-color: #22c55e; /* Green-500 */
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.button:disabled {
+    background-color: #4b5563;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
