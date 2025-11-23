@@ -178,3 +178,42 @@
       gap: 1rem;
     }
   }
+
+.collapsibleHeader {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+}
+
+.collapsibleHeader:hover {
+    color: var(--text-primary);
+}
+
+.chevron {
+    margin-right: 0.5rem;
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+}
+
+.chevron.open {
+    transform: rotate(90deg);
+}
+
+.liveSection {
+    /* Optional: Add a subtle glow or border for live contests */
+    background: rgba(99, 102, 241, 0.1); /* Tint of primary color */
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.emptyState {
+    color: var(--text-secondary);
+    font-style: italic;
+}
