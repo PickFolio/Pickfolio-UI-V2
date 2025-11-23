@@ -16,9 +16,18 @@ export const loginUser = async (username, password, deviceInfo) => {
   return data; // Returns the tokens
 };
 
-export const registerUser = async (name, username, password) => {
-    // You can add the registration API call logic here later
-    console.log("Registering user:", { name, username });
-    // This is just a placeholder, you'd have a fetch call here.
-    return { success: true };
+export const registerUser = async ({ name, username, password }) => {
+  const response = await fetch(import.meta.env.VITE_AUTH_API_URL + '/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, username, password }),
+  });
+
+  if (!response.ok) {
+    // Try to parse the error message from the backend
+    const data = await response.json();
+    throw new Error(data.message || 'Registration failed');
+  }
+
+  return { success: true };
 };

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { loginUser } from '../services/authService';
+import { loginUser, registerUser } from '../services/authService';
 import { LoginPage, RegistrationPage } from '../components/AuthForms';
+import toast from 'react-hot-toast';
 
 function AuthPage() {
   const [isRegistering, setIsRegistering] = useState(false);
