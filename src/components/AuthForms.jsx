@@ -12,8 +12,7 @@ export const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
         setIsLoading(true);
         setError(null);
         try {
-            // We'll call the onLoginSuccess function passed from AuthPage
-            await onLoginSuccess(username, password, "WebApp");
+            await onLoginSuccess(username.trim(), password, "WebApp");
         } catch (err) {
             setError(err.message);
         } finally {
@@ -45,7 +44,7 @@ export const LoginPage = ({ onLoginSuccess, onSwitchToRegister }) => {
                     </form>
                 </div>
                  <p className={styles.switchText}>
-                    Don't have an account? 
+                    Don't have an account?
                     <button onClick={onSwitchToRegister} className={styles.switchButton}> Sign Up</button>
                 </p>
             </div>
@@ -66,7 +65,11 @@ export const RegistrationPage = ({ onRegisterSuccess, onSwitchToLogin }) => {
        setIsLoading(true);
        setError(null);
        try {
-           await onRegisterSuccess({ name, username, password });
+           await onRegisterSuccess({
+               name,
+               username: username.trim(),
+               password
+           });
        } catch (err) {
            setError(err.message);
        } finally {
