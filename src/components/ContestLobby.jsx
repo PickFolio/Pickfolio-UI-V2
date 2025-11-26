@@ -125,24 +125,26 @@ const ContestLobby = () => {
         fetchData();
     }, [fetchData]);
 
-    // --- Sort and Categorize Contests ---
+    // --- Categorize & Sort Contests ---
     const { live, upcoming, history } = useMemo(() => {
-        // Sorting Logic: Newest Start Time first
-        const sorted = [...myContests].sort((a, b) => {
-            const dateA = new Date(a.startTime);
-            const dateB = new Date(b.startTime);
-            return dateB - dateA; // Descending
-        });
-
         const live = [];
         const upcoming = [];
         const history = [];
 
-        sorted.forEach(c => {
+        myContests.forEach(c => {
             if (c.status === 'LIVE') live.push(c);
             else if (c.status === 'OPEN') upcoming.push(c);
             else history.push(c); // COMPLETED or CANCELLED
         });
+
+        // 1. Live: Sort by End Time Ascending (Ending Soonest = Top Priority)
+        live.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
+
+        // 2. Upcoming: Sort by Start Time Ascending (Nearest Start Date = Top Priority)
+        upcoming.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+        // 3. History: Sort by End Time Descending (Most Recently Finished = Top)
+        history.sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
 
         return { live, upcoming, history };
     }, [myContests]);
@@ -150,6 +152,8 @@ const ContestLobby = () => {
     // --- Filter Discovery Section ---
     const myContestIds = new Set(myContests.map(c => c.id));
     const availablePublicContests = publicContests.filter(c => !myContestIds.has(c.id));
+    // Sort public contests by nearest start time as well
+    availablePublicContests.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
 
     // --- Handlers ---
@@ -220,7 +224,7 @@ const ContestLobby = () => {
 
             {!isLoading && !error && (
                 <>
-                    {/* 1. Live Contests */}
+                    {/* 1. Live Contests (Priority) */}
                     {live.length > 0 && (
                         <div className={styles.liveSection}>
                             <h2 className={styles.sectionTitle}>🔴 Live Contests</h2>
