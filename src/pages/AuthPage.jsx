@@ -20,13 +20,9 @@ function AuthPage() {
   const handleLogin = async (username, password, deviceInfo) => {
     try {
       const tokens = await loginUser(username, password, deviceInfo);
-      login(tokens); // Update the global auth state
-      navigate('/'); // Redirect to the homepage
+      login(tokens);
+      navigate('/');
     } catch (error) {
-      // Error handling is done in the LoginPage component's local state usually,
-      // but we re-throw here if needed or let the component handle it.
-      // In your structure, LoginPage handles the try/catch, so we just let it bubble up
-      // or we can handle specific global errors here.
       throw error;
     }
   };
@@ -34,7 +30,7 @@ function AuthPage() {
   const handleRegister = async (registrationData) => {
     // Use a promise toast for async operations
     await toast.promise(
-      registerUser(registrationData.name, registrationData.username, registrationData.password),
+      registerUser(registrationData),
       {
         loading: 'Creating account...',
         success: () => {
