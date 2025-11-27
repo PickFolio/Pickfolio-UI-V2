@@ -125,6 +125,20 @@ const ContestLobby = () => {
         fetchData();
     }, [fetchData]);
 
+    // --- Sorting Helper Function ---
+    const sortUpcoming = (a, b) => {
+        // 1. Start Time (Ascending)
+        const startDiff = new Date(a.startTime) - new Date(b.startTime);
+        if (startDiff !== 0) return startDiff;
+
+        // 2. End Time (Ascending - Earliest end time first)
+        const endDiff = new Date(a.endTime) - new Date(b.endTime);
+        if (endDiff !== 0) return endDiff;
+
+        // 3. Name (Alphabetical)
+        return a.name.localeCompare(b.name);
+    };
+
     // --- Categorize & Sort Contests ---
     const { live, upcoming, history } = useMemo(() => {
         const live = [];
@@ -134,16 +148,16 @@ const ContestLobby = () => {
         myContests.forEach(c => {
             if (c.status === 'LIVE') live.push(c);
             else if (c.status === 'OPEN') upcoming.push(c);
-            else history.push(c); // COMPLETED or CANCELLED
+            else history.push(c);
         });
 
-        // 1. Live: Sort by End Time Ascending (Ending Soonest = Top Priority)
+        // Live: End Time Ascending (Urgency)
         live.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
 
-        // 2. Upcoming: Sort by Start Time Ascending (Nearest Start Date = Top Priority)
-        upcoming.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        // Upcoming: Use the new comprehensive sort
+        upcoming.sort(sortUpcoming);
 
-        // 3. History: Sort by End Time Descending (Most Recently Finished = Top)
+        // History: End Time Descending (Recent first)
         history.sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
 
         return { live, upcoming, history };
@@ -152,8 +166,9 @@ const ContestLobby = () => {
     // --- Filter Discovery Section ---
     const myContestIds = new Set(myContests.map(c => c.id));
     const availablePublicContests = publicContests.filter(c => !myContestIds.has(c.id));
-    // Sort public contests by nearest start time as well
-    availablePublicContests.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    // Apply the same sorting logic to public contests
+    availablePublicContests.sort(sortUpcoming);
 
 
     // --- Handlers ---

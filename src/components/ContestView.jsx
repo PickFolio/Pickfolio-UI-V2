@@ -22,8 +22,6 @@ const PortfolioView = ({ portfolio }) => {
         return value >= 0 ? 'text-green-400' : 'text-red-400';
     };
 
-    const holdings = portfolio?.holdings || [];
-
     return (
         <div className={styles.widget}>
             <h2 className={styles.widgetTitle}>My Portfolio</h2>
@@ -94,7 +92,7 @@ const Leaderboard = ({ leaderboard, currentParticipantId }) => (
 );
 
 // Helper component for the trade widget
-const TradeWidget = ({ contestId, onTransactionSuccess }) => {
+const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
     const [symbol, setSymbol] = useState('');
     const [quantity, setQuantity] = useState('1');
     const [tradeType, setTradeType] = useState('BUY');
@@ -119,6 +117,8 @@ const TradeWidget = ({ contestId, onTransactionSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true); // Add loading state
+        setError(null);
 
         const promise = executeTransaction(authFetch, contestId, {
             stockSymbol: symbol.toUpperCase() + '.NS',
@@ -126,17 +126,23 @@ const TradeWidget = ({ contestId, onTransactionSuccess }) => {
             quantity: parseInt(quantity, 10),
         });
 
-        await toast.promise(promise, {
-            loading: 'Processing transaction...',
-            success: () => {
-                setSymbol('');
-                setSearchTerm('');
-                setQuantity('1');
-                onTransactionSuccess(); // Refresh data
-                return <b>Transaction successful!</b>;
-            },
-            error: (err) => <b>{err.message || 'Transaction failed.'}</b>,
-        });
+        try {
+            await toast.promise(promise, {
+                loading: 'Processing transaction...',
+                success: () => {
+                    setSymbol('');
+                    setSearchTerm('');
+                    setQuantity('1');
+                    onTransactionSuccess(); // Refresh data
+                    return <b>Transaction successful!</b>;
+                },
+                error: (err) => <b>{err.message || 'Transaction failed.'}</b>,
+            });
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -145,7 +151,6 @@ const TradeWidget = ({ contestId, onTransactionSuccess }) => {
             {error && <div className={styles.errorBox}>{error}</div>}
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.tradeGrid}>
-                    {/* --- JSX for the searchable dropdown --- */}
                     <div className={styles.dropdownContainer}>
                         <label htmlFor="symbol" className={styles.inputLabel}>Stock Symbol</label>
                         <input
@@ -204,7 +209,9 @@ const ContestView = ({ contestId }) => {
 
     const fetchInitialData = useCallback(async () => {
         try {
-            setIsLoading(true);
+            // Don't set full page loading for subsequent refreshes, only initial
+            if (!portfolio) setIsLoading(true);
+
             setError(null);
             const [portfolioData, leaderboardData] = await Promise.all([
                 getPortfolio(authFetch, contestId),
@@ -217,7 +224,7 @@ const ContestView = ({ contestId }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [contestId, authFetch]);
+    }, [contestId, authFetch]); // Removed portfolio from deps to avoid loop, relying on it only for loading check
 
     useEffect(() => {
         fetchInitialData();
@@ -258,12 +265,12 @@ const ContestView = ({ contestId }) => {
         };
     }, [contestId, tokens]);
 
-    if (isLoading) return (
+    if (isLoading && !portfolio) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <Spinner />
         </div>
     );
-    if (error) return <p className={styles.error}>Error: {error}</p>;
+    if (error && !portfolio) return <p className={styles.error}>Error: {error}</p>;
 
     return (
         <div className={styles.container}>
@@ -274,7 +281,11 @@ const ContestView = ({ contestId }) => {
             <div className={styles.mainGrid}>
                 <div className={styles.leftColumn}>
                     <PortfolioView portfolio={portfolio} />
-                    <TradeWidget contestId={contestId} onTransactionSuccess={fetchInitialData} />
+                    <TradeWidget
+                        contestId={contestId}
+                        onTransactionSuccess={fetchInitialData}
+                        authFetch={authFetch}
+                    />
                 </div>
                 <div className={styles.rightColumn}>
                     <Leaderboard leaderboard={leaderboard} currentParticipantId={portfolio?.participantId} />
