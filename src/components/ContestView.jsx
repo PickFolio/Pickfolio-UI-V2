@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
-import { getPortfolio, getLeaderboard, executeTransaction } from '../services/contestService';
+import { getPortfolio, getLeaderboard, executeTransaction, getStockQuote } from '../services/contestService';
 import { Client as StompClient } from '@stomp/stompjs';
 import styles from './ContestView.module.css';
 import toast from 'react-hot-toast';
@@ -10,10 +10,7 @@ import Spinner from './Spinner';
 
 const CONTEST_WS_URL = import.meta.env.VITE_CONTEST_WS_URL;
 
-// Helper to remove suffix for display
-const formatSymbol = (symbol) => {
-    return symbol ? symbol.replace('.NS', '') : '';
-};
+const formatSymbol = (symbol) => symbol ? symbol.replace('.NS', '') : '';
 
 const PortfolioView = ({ portfolio }) => {
     const formatCurrency = (value) => {
@@ -96,12 +93,14 @@ const Leaderboard = ({ leaderboard, currentParticipantId }) => (
     </div>
 );
 
-const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
+const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices }) => {
     const [symbol, setSymbol] = useState('');
     const [quantity, setQuantity] = useState('1');
     const [tradeType, setTradeType] = useState('BUY');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [currentPrice, setCurrentPrice] = useState(null);
+    const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
     // Hardcoded list for dropdown
     const popularStocks = [
@@ -112,6 +111,48 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
     const [showDropdown, setShowDropdown] = useState(false);
 
     const filteredStocks = popularStocks.filter(stock => stock.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // 1. Fetch price when symbol changes
+    useEffect(() => {
+        const fetchPrice = async () => {
+            if (!symbol) {
+                setCurrentPrice(null);
+                return;
+            }
+
+            const cleanSymbol = symbol.trim().toUpperCase() + '.NS';
+
+            // Check if we already have it in livePrices (instant)
+            if (livePrices && livePrices[cleanSymbol]) {
+                setCurrentPrice(livePrices[cleanSymbol]);
+                return;
+            }
+
+            // Otherwise fetch from backend
+            setIsFetchingPrice(true);
+            try {
+                const quote = await getStockQuote(authFetch, cleanSymbol);
+                setCurrentPrice(quote.price);
+            } catch (err) {
+                console.error("Failed to fetch quote", err);
+                setCurrentPrice(null);
+            } finally {
+                setIsFetchingPrice(false);
+            }
+        };
+
+        const timeoutId = setTimeout(fetchPrice, 500); // Debounce
+        return () => clearTimeout(timeoutId);
+    }, [symbol, authFetch]); // Intentionally not depending on livePrices here to avoid loop, handled below
+
+    // 2. Update price from live feed if available
+    useEffect(() => {
+        if (!symbol) return;
+        const cleanSymbol = symbol.trim().toUpperCase() + '.NS';
+        if (livePrices && livePrices[cleanSymbol]) {
+            setCurrentPrice(livePrices[cleanSymbol]);
+        }
+    }, [livePrices, symbol]);
 
     const handleSymbolSelect = (selectedSymbol) => {
         setSymbol(selectedSymbol);
@@ -124,11 +165,10 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
         setIsLoading(true);
         setError(null);
 
-        // FIX: Trim whitespace from input
         const cleanSymbol = symbol.trim().toUpperCase();
 
         const promise = executeTransaction(authFetch, contestId, {
-            stockSymbol: cleanSymbol + '.NS', // Append suffix for backend
+            stockSymbol: cleanSymbol + '.NS',
             transactionType: tradeType,
             quantity: parseInt(quantity, 10),
         });
@@ -140,6 +180,7 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
                     setSymbol('');
                     setSearchTerm('');
                     setQuantity('1');
+                    setCurrentPrice(null);
                     onTransactionSuccess();
                     return <b>Transaction successful!</b>;
                 },
@@ -151,6 +192,8 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
             setIsLoading(false);
         }
     };
+
+    const estimatedValue = currentPrice ? (currentPrice * parseInt(quantity || 0, 10)) : 0;
 
     return (
         <div className={styles.widget}>
@@ -175,11 +218,7 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
                         {showDropdown && filteredStocks.length > 0 && (
                             <ul className={styles.dropdownList}>
                                 {filteredStocks.map(stock => (
-                                    <li
-                                        key={stock}
-                                        onClick={() => handleSymbolSelect(stock)}
-                                        className={styles.dropdownItem}
-                                    >
+                                    <li key={stock} onClick={() => handleSymbolSelect(stock)} className={styles.dropdownItem}>
                                         {stock}
                                     </li>
                                 ))}
@@ -195,6 +234,18 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch }) => {
                         <button type="button" onClick={() => setTradeType('SELL')} className={`${styles.button} ${tradeType === 'SELL' ? styles.sellActive : ''}`}>SELL</button>
                     </div>
                 </div>
+
+                {/* --- Cost Estimation Section --- */}
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.3)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        {isFetchingPrice ? 'Fetching price...' : (currentPrice ? `Price: ₹${currentPrice.toFixed(2)}` : 'Enter symbol')}
+                    </span>
+                    <span style={{ fontWeight: 'bold', color: tradeType === 'BUY' ? '#f87171' : '#4ade80' }}>
+                        {tradeType === 'BUY' ? 'Cost: ' : 'Gain: '}
+                        {currentPrice ? `₹${estimatedValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '---'}
+                    </span>
+                </div>
+
                 <button type="submit" disabled={isLoading || !symbol} className={styles.executeButton}>
                     {isLoading ? 'Processing...' : `Execute ${tradeType}`}
                 </button>
@@ -209,6 +260,7 @@ const ContestView = ({ contestId }) => {
     const [leaderboard, setLeaderboard] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [livePrices, setLivePrices] = useState({}); // New State
 
     const navigate = useNavigate();
     const authFetch = useAuthFetch();
@@ -247,12 +299,9 @@ const ContestView = ({ contestId }) => {
         });
 
         stompClient.onConnect = () => {
-            console.log('Connected to WebSocket');
-
-            // 1. Subscribe to Leaderboard Updates
+            // 1. Leaderboard Updates
             stompClient.subscribe(`/topic/contest/${contestId}`, (message) => {
                 const update = JSON.parse(message.body);
-                // Update the leaderboard with the new value
                 setLeaderboard(prev =>
                     prev.map(p =>
                         p.participantId === update.participantId
@@ -262,15 +311,14 @@ const ContestView = ({ contestId }) => {
                 );
             });
 
-            // 2. Subscribe to LIVE PRICE Updates
+            // 2. Live Price Updates
             stompClient.subscribe('/topic/live-prices', (message) => {
-                const prices = JSON.parse(message.body); // Map<String, Double>
+                const prices = JSON.parse(message.body);
+                setLivePrices(prices); // Store for TradeWidget
 
                 setPortfolio(prev => {
                     if (!prev || !prev.holdings) return prev;
-
                     let hasUpdates = false;
-
                     // Recalculate each holding based on new prices
                     const updatedHoldings = prev.holdings.map(h => {
                         const newPrice = prices[h.stockSymbol];
@@ -278,37 +326,25 @@ const ContestView = ({ contestId }) => {
                             hasUpdates = true;
                             const currentPrice = newPrice;
                             const currentValue = currentPrice * h.quantity;
-                            const profit = currentValue - h.buyValue; // Buy Value remains constant
+                            const profit = currentValue - h.buyValue;
                             return { ...h, currentPrice, currentValue, profit };
                         }
                         return h;
                     });
 
-                    if (!hasUpdates) return prev; // No relevant price changes
+                    if (!hasUpdates) return prev;
 
-                    // Recalculate Portfolio Totals
                     const totalHoldingsValue = updatedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
-                    // Cash Balance doesn't change from price updates
                     const totalPortfolioValue = Number(prev.cashBalance) + totalHoldingsValue;
                     const totalProfitLoss = updatedHoldings.reduce((sum, h) => sum + h.profit, 0);
 
-                    return {
-                        ...prev,
-                        holdings: updatedHoldings,
-                        totalHoldingsValue,
-                        totalPortfolioValue,
-                        totalProfitLoss
-                    };
+                    return { ...prev, holdings: updatedHoldings, totalHoldingsValue, totalPortfolioValue, totalProfitLoss };
                 });
             });
         };
 
         stompClient.activate();
-
-        // Cleanup function to close the connection when the component unmounts
-        return () => {
-            stompClient.deactivate();
-        };
+        return () => stompClient.deactivate();
     }, [contestId, tokens]);
 
     if (isLoading && !portfolio) return (
@@ -331,6 +367,7 @@ const ContestView = ({ contestId }) => {
                         contestId={contestId}
                         onTransactionSuccess={fetchInitialData}
                         authFetch={authFetch}
+                        livePrices={livePrices} // Pass live prices
                     />
                 </div>
                 <div className={styles.rightColumn}>

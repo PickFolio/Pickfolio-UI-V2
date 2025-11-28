@@ -20,7 +20,10 @@ export const getLeaderboard = async (authFetch, contestId) => {
   return await authFetch(`${CONTEST_API_URL}/${contestId}/leaderboard`);
 };
 
-// Executes a trade (buy/sell) transaction
+export const getStockQuote = async (authFetch, symbol) => {
+    return await authFetch(`${CONTEST_API_URL}/quote/${symbol}`);
+};
+
 export const executeTransaction = async (authFetch, contestId, { stockSymbol, transactionType, quantity }) => {
     return await authFetch(`${CONTEST_API_URL}/${contestId}/transactions`, {
         method: 'POST',
@@ -39,7 +42,7 @@ export const createContest = async (authFetch, contestData) => {
 export const joinContest = async (authFetch, contestId) => {
     return await authFetch(`${CONTEST_API_URL}/join`, {
         method: 'POST',
-        body: JSON.stringify({ contestId }), // inviteCode is null for public contests
+        body: JSON.stringify({ contestId }),
     });
 };
 
