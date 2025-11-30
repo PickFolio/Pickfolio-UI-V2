@@ -56,3 +56,7 @@ export const joinContestByCode = async (authFetch, inviteCode) => {
       body: JSON.stringify({ inviteCode }),
   });
 };
+
+export const searchStocks = async (authFetch, query) => {
+    return await authFetch(`${CONTEST_API_URL}/search?q=${encodeURIComponent(query)}`);
+};

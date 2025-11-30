@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
-import { getPortfolio, getLeaderboard, executeTransaction, getStockQuote, getContestDetails } from '../services/contestService';
+import { getPortfolio, getLeaderboard, executeTransaction, getStockQuote, getContestDetails, searchStocks } from '../services/contestService';
 import { Client as StompClient } from '@stomp/stompjs';
 import styles from './ContestView.module.css';
 import toast from 'react-hot-toast';
@@ -102,35 +102,48 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
     const [currentPrice, setCurrentPrice] = useState(null);
     const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
-    // Hardcoded list for dropdown
-    const popularStocks = [
-        'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'ITC', 'SBIN', 'BAJFINANCE', 'BHARTIARTL',
-        'KOTAKBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI', 'AXISBANK', 'LT', 'BAJAJFINSV', 'WIPRO', 'ULTRACEMCO', 'NESTLEIND'
-    ];
+    // Dynamic Search State
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
 
-    const filteredStocks = popularStocks.filter(stock => stock.toLowerCase().includes(searchTerm.toLowerCase()));
+    // 1. Debounced Search Effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchTerm.length < 2) {
+                setSearchResults([]);
+                return;
+            }
 
-    // 1. Fetch price when symbol changes
+            try {
+                const results = await searchStocks(authFetch, searchTerm);
+                setSearchResults(results || []);
+                setShowDropdown(true);
+            } catch (err) {
+                console.error("Search failed", err);
+            }
+        }, 300); // 300ms delay
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, authFetch]);
+
+    // 2. Fetch Price Effect (Same as before, but handles symbol selection)
     useEffect(() => {
         const fetchPrice = async () => {
             if (!symbol) {
                 setCurrentPrice(null);
                 return;
             }
-            const cleanSymbol = symbol.trim().toUpperCase() + '.NS';
 
-            // Check if we already have it in livePrices (instant)
-            if (livePrices && livePrices[cleanSymbol]) {
-                setCurrentPrice(livePrices[cleanSymbol]);
+            // Check live feed first
+            if (livePrices && livePrices[symbol]) {
+                setCurrentPrice(livePrices[symbol]);
                 return;
             }
 
-            // Otherwise fetch from backend
             setIsFetchingPrice(true);
             try {
-                const quote = await getStockQuote(authFetch, cleanSymbol);
+                const quote = await getStockQuote(authFetch, symbol);
                 setCurrentPrice(quote.price);
             } catch (err) {
                 console.error("Failed to fetch quote", err);
@@ -140,23 +153,23 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
             }
         };
 
-        const timeoutId = setTimeout(fetchPrice, 500);
-        return () => clearTimeout(timeoutId);
+        // Fetch immediately if symbol is set
+        fetchPrice();
     }, [symbol, authFetch]);
 
-    // 2. Update price from live feed if available
+    // Update price from live feed if available
     useEffect(() => {
         if (!symbol) return;
-        const cleanSymbol = symbol.trim().toUpperCase() + '.NS';
-        if (livePrices && livePrices[cleanSymbol]) {
-            setCurrentPrice(livePrices[cleanSymbol]);
+        if (livePrices && livePrices[symbol]) {
+            setCurrentPrice(livePrices[symbol]);
         }
     }, [livePrices, symbol]);
 
 
-    const handleSymbolSelect = (selectedSymbol) => {
-        setSymbol(selectedSymbol);
-        setSearchTerm(selectedSymbol);
+    const handleSymbolSelect = (result) => {
+        setSymbol(result.symbol); // Store the actual symbol (e.g., RELIANCE.NS)
+        setSearchTerm(result.symbol); // Show symbol in box
+        setSearchResults([]); // Clear results
         setShowDropdown(false);
     };
 
@@ -165,10 +178,8 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
         setIsLoading(true);
         setError(null);
 
-        const cleanSymbol = symbol.trim().toUpperCase();
-
         const promise = executeTransaction(authFetch, contestId, {
-            stockSymbol: cleanSymbol + '.NS',
+            stockSymbol: symbol, // Use the selected symbol directly
             transactionType: tradeType,
             quantity: parseInt(quantity, 10),
         });
@@ -202,24 +213,36 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.tradeGrid}>
                     <div className={styles.dropdownContainer}>
-                        <label htmlFor="symbol" className={styles.inputLabel}>Stock Symbol</label>
+                        <label htmlFor="symbol" className={styles.inputLabel}>Stock Search</label>
                         <input
                             type="text"
                             id="symbol"
                             value={searchTerm}
-                            onChange={e => { setSearchTerm(e.target.value); setSymbol(e.target.value); setShowDropdown(true); }}
-                            onFocus={() => setShowDropdown(true)}
+                            onChange={e => {
+                                setSearchTerm(e.target.value);
+                                // Only clear symbol if user types manually to force re-selection or re-validation
+                                if (e.target.value !== symbol) setSymbol('');
+                            }}
+                            onFocus={() => { if(searchResults.length > 0) setShowDropdown(true); }}
+                            // Delay blur to allow click on dropdown item
                             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                             required
                             className={styles.input}
-                            placeholder="e.g., RELIANCE"
+                            placeholder="Type to search (e.g. Tata)"
                             autoComplete="off"
                         />
-                        {showDropdown && filteredStocks.length > 0 && (
+
+                        {/* Dynamic Dropdown */}
+                        {showDropdown && searchResults.length > 0 && (
                             <ul className={styles.dropdownList}>
-                                {filteredStocks.map(stock => (
-                                    <li key={stock} onClick={() => handleSymbolSelect(stock)} className={styles.dropdownItem}>
-                                        {stock}
+                                {searchResults.map((result) => (
+                                    <li
+                                        key={result.symbol}
+                                        onClick={() => handleSymbolSelect(result)}
+                                        className={styles.dropdownItem}
+                                    >
+                                        <div style={{fontWeight: 'bold'}}>{result.symbol}</div>
+                                        <div style={{fontSize: '0.8em', color: '#ccc'}}>{result.name}</div>
                                     </li>
                                 ))}
                             </ul>
@@ -238,7 +261,7 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
                 {symbol && (
                     <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.3)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                            {isFetchingPrice ? 'Fetching price...' : (currentPrice ? `Price: ₹${currentPrice.toFixed(2)}` : 'Enter symbol')}
+                            {isFetchingPrice ? 'Fetching price...' : (currentPrice ? `Price: ₹${currentPrice.toFixed(2)}` : 'Loading...')}
                         </span>
                         <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
                             Total: {currentPrice ? `₹${estimatedValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '---'}
