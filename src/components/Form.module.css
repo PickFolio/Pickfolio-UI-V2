@@ -47,6 +47,14 @@
     gap: 1.5rem;
 }
 
+/* FIX: Stack grid items on mobile */
+@media (max-width: 640px) {
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
 .checkboxGroup {
     display: flex;
     align-items: center;

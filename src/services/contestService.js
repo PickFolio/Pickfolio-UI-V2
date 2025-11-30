@@ -10,7 +10,11 @@ export const getOpenPublicContests = async (authFetch) => {
   return await authFetch(`${CONTEST_API_URL}/open-public-contests`);
 };
 
-// Fetches the user's portfolio for a specific contest
+// Fetch single contest details (for status check) ---
+export const getContestDetails = async (authFetch, contestId) => {
+    return await authFetch(`${CONTEST_API_URL}/details/${contestId}`);
+};
+
 export const getPortfolio = async (authFetch, contestId) => {
   return await authFetch(`${CONTEST_API_URL}/${contestId}/portfolio`);
 };

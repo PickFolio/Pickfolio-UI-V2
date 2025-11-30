@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
-import { getPortfolio, getLeaderboard, executeTransaction, getStockQuote } from '../services/contestService';
+import { getPortfolio, getLeaderboard, executeTransaction, getStockQuote, getContestDetails } from '../services/contestService';
 import { Client as StompClient } from '@stomp/stompjs';
 import styles from './ContestView.module.css';
 import toast from 'react-hot-toast';
@@ -84,7 +84,7 @@ const Leaderboard = ({ leaderboard, currentParticipantId }) => (
                 <li key={player.participantId} className={player.participantId === currentParticipantId ? styles.leaderboardItemYou : styles.leaderboardItem}>
                     <div className={styles.leaderboardRank}>
                         <span>{index + 1}</span>
-                        <span className={styles.leaderboardName}>{player.participantId === currentParticipantId ? "You" : player.username}</span>
+                        <span className={styles.leaderboardName}>{player.username}</span>
                     </div>
                     <span className={styles.leaderboardValue}>₹{Number(player.totalPortfolioValue).toLocaleString('en-IN')}</span>
                 </li>
@@ -119,7 +119,6 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
                 setCurrentPrice(null);
                 return;
             }
-
             const cleanSymbol = symbol.trim().toUpperCase() + '.NS';
 
             // Check if we already have it in livePrices (instant)
@@ -141,9 +140,9 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
             }
         };
 
-        const timeoutId = setTimeout(fetchPrice, 500); // Debounce
+        const timeoutId = setTimeout(fetchPrice, 500);
         return () => clearTimeout(timeoutId);
-    }, [symbol, authFetch]); // Intentionally not depending on livePrices here to avoid loop, handled below
+    }, [symbol, authFetch]);
 
     // 2. Update price from live feed if available
     useEffect(() => {
@@ -153,6 +152,7 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
             setCurrentPrice(livePrices[cleanSymbol]);
         }
     }, [livePrices, symbol]);
+
 
     const handleSymbolSelect = (selectedSymbol) => {
         setSymbol(selectedSymbol);
@@ -235,16 +235,16 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
                     </div>
                 </div>
 
-                {/* --- Cost Estimation Section --- */}
-                <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.3)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        {isFetchingPrice ? 'Fetching price...' : (currentPrice ? `Price: ₹${currentPrice.toFixed(2)}` : 'Enter symbol')}
-                    </span>
-                    <span style={{ fontWeight: 'bold', color: tradeType === 'BUY' ? '#f87171' : '#4ade80' }}>
-                        {tradeType === 'BUY' ? 'Cost: ' : 'Gain: '}
-                        {currentPrice ? `₹${estimatedValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '---'}
-                    </span>
-                </div>
+                {symbol && (
+                    <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'rgba(15, 23, 42, 0.3)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            {isFetchingPrice ? 'Fetching price...' : (currentPrice ? `Price: ₹${currentPrice.toFixed(2)}` : 'Enter symbol')}
+                        </span>
+                        <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            Total: {currentPrice ? `₹${estimatedValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '---'}
+                        </span>
+                    </div>
+                )}
 
                 <button type="submit" disabled={isLoading || !symbol} className={styles.executeButton}>
                     {isLoading ? 'Processing...' : `Execute ${tradeType}`}
@@ -258,9 +258,10 @@ const TradeWidget = ({ contestId, onTransactionSuccess, authFetch, livePrices })
 const ContestView = ({ contestId }) => {
     const [portfolio, setPortfolio] = useState(null);
     const [leaderboard, setLeaderboard] = useState([]);
+    const [contest, setContest] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [livePrices, setLivePrices] = useState({}); // New State
+    const [livePrices, setLivePrices] = useState({});
 
     const navigate = useNavigate();
     const authFetch = useAuthFetch();
@@ -271,12 +272,15 @@ const ContestView = ({ contestId }) => {
             // Don't set full page loading for subsequent refreshes, only initial
             if (!portfolio) setIsLoading(true);
             setError(null);
-            const [portfolioData, leaderboardData] = await Promise.all([
+            // Fetch contest details to check status
+            const [portfolioData, leaderboardData, contestData] = await Promise.all([
                 getPortfolio(authFetch, contestId),
-                getLeaderboard(authFetch, contestId)
+                getLeaderboard(authFetch, contestId),
+                getContestDetails(authFetch, contestId)
             ]);
             setPortfolio(portfolioData);
             setLeaderboard(leaderboardData || []);
+            setContest(contestData);
         } catch (err) {
             setError(err.message || "Failed to load contest data.");
         } finally {
@@ -314,7 +318,7 @@ const ContestView = ({ contestId }) => {
             // 2. Live Price Updates
             stompClient.subscribe('/topic/live-prices', (message) => {
                 const prices = JSON.parse(message.body);
-                setLivePrices(prices); // Store for TradeWidget
+                setLivePrices(prices);
 
                 setPortfolio(prev => {
                     if (!prev || !prev.holdings) return prev;
@@ -358,17 +362,26 @@ const ContestView = ({ contestId }) => {
         <div className={styles.container}>
              <header className={styles.header}>
                 <button onClick={() => navigate('/')} className={styles.backButton}>&larr; Back to Lobby</button>
-                <h1 className={styles.title}>Contest View</h1>
+                <h1 className={styles.title}>{contest?.name || 'Contest View'}</h1>
              </header>
             <div className={styles.mainGrid}>
                 <div className={styles.leftColumn}>
                     <PortfolioView portfolio={portfolio} />
-                    <TradeWidget
-                        contestId={contestId}
-                        onTransactionSuccess={fetchInitialData}
-                        authFetch={authFetch}
-                        livePrices={livePrices} // Pass live prices
-                    />
+
+                    {/* FIX: Only show trade widget if contest is LIVE */}
+                    {contest?.status === 'LIVE' && (
+                        <TradeWidget
+                            contestId={contestId}
+                            onTransactionSuccess={fetchInitialData}
+                            authFetch={authFetch}
+                            livePrices={livePrices}
+                        />
+                    )}
+                    {contest?.status !== 'LIVE' && (
+                        <div className={styles.widget} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            <p>Trading is currently closed for this contest.</p>
+                        </div>
+                    )}
                 </div>
                 <div className={styles.rightColumn}>
                     <Leaderboard leaderboard={leaderboard} currentParticipantId={portfolio?.participantId} />
