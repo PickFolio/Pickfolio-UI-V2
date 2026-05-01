@@ -2,13 +2,29 @@ import { useState, createContext, useContext } from 'react';
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [tokens, setTokens] = useState(() => {
+const parseStoredTokens = () => {
+  try {
     const storedTokens = localStorage.getItem('authTokens');
     return storedTokens ? JSON.parse(storedTokens) : null;
-  });
+  } catch {
+    localStorage.removeItem('authTokens');
+    return null;
+  }
+};
 
-  const userId = tokens?.accessToken ? JSON.parse(atob(tokens.accessToken.split('.')[1])).sub : null;
+const decodeUserId = (accessToken) => {
+  try {
+    if (!accessToken) return null;
+    return JSON.parse(atob(accessToken.split('.')[1])).sub;
+  } catch {
+    return null;
+  }
+};
+
+export const AuthProvider = ({ children }) => {
+  const [tokens, setTokens] = useState(parseStoredTokens);
+
+  const userId = decodeUserId(tokens?.accessToken);
 
   const login = (newTokens) => {
     localStorage.setItem('authTokens', JSON.stringify(newTokens));
@@ -24,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     tokens,
     userId,
-    isLoggedIn: !!tokens,
+    isLoggedIn: !!tokens?.accessToken,
     login,
     logout,
   };
@@ -33,6 +49,7 @@ export const AuthProvider = ({ children }) => {
 };
 
 // This is a custom hook that makes it easy to use the auth context
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

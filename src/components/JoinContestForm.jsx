@@ -1,38 +1,45 @@
 import { useState } from 'react';
-import styles from './Form.module.css'; // Reusing our generic form styles
+import { KeyRound } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { FormField } from '@/components/ui/FormField';
 
 function JoinContestForm({ onSubmit, onCancel, isLoading }) {
   const [inviteCode, setInviteCode] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (inviteCode.trim()) {
-      onSubmit(inviteCode.trim().toUpperCase());
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const code = inviteCode.trim().toUpperCase();
+    if (code.length !== 6) {
+      setError('Invite code must be 6 characters.');
+      return;
     }
+    onSubmit(code);
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
-      <div className={styles.formGroup}>
-        <label htmlFor="inviteCode">Contest Invite Code</label>
-        <input
-          type="text"
-          name="inviteCode"
-          id="inviteCode"
-          value={inviteCode}
-          onChange={(e) => setInviteCode(e.target.value)}
-          className={styles.input}
-          placeholder="Enter 6-digit code"
-          maxLength="6"
-          required
-          autoFocus
-        />
-      </div>
-      <div className={styles.formActions}>
-        <button type="button" onClick={onCancel} className={`${styles.button} ${styles.secondary}`}>Cancel</button>
-        <button type="submit" className={styles.button} disabled={isLoading}>
-            {isLoading ? 'Joining...' : 'Join Contest'}
-        </button>
+    <form className="compact-form" onSubmit={handleSubmit} noValidate>
+      <FormField
+        id="inviteCode"
+        label="Invite code"
+        error={error}
+        inputProps={{
+          value: inviteCode,
+          onChange: (event) => {
+            setInviteCode(event.target.value.toUpperCase());
+            setError('');
+          },
+          placeholder: 'A1B2C3',
+          maxLength: 6,
+          autoFocus: true,
+          style: { textAlign: 'center', letterSpacing: '0.14em', fontWeight: 850, fontSize: 'var(--text-xl)' },
+        }}
+      />
+      <div className="compact-actions">
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isLoading}>
+          <KeyRound size={18} /> {isLoading ? 'Joining...' : 'Join contest'}
+        </Button>
       </div>
     </form>
   );

@@ -1,48 +1,30 @@
-// This function will be called by the login form.
-// It keeps the 'fetch' logic out of the component.
+import { apiRequest, endpoints } from './api';
+
 export const loginUser = async (username, password, deviceInfo) => {
-  const response = await fetch(import.meta.env.VITE_AUTH_API_URL + '/login', {
+  return apiRequest(endpoints.auth.login, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, deviceInfo }),
+    body: { username, password, deviceInfo },
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Login failed');
-  }
-
-  return data; // Returns the tokens
 };
 
 export const registerUser = async ({ name, username, password }) => {
-  const response = await fetch(import.meta.env.VITE_AUTH_API_URL + '/register', {
+  await apiRequest(endpoints.auth.register, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, username, password }),
+    body: { name, username, password },
   });
-
-  if (!response.ok) {
-    // Try to parse the error message from the backend
-    const data = await response.json();
-    throw new Error(data.message || 'Registration failed');
-  }
-
   return { success: true };
 };
 
 export const refreshAccessToken = async (refreshToken, deviceInfo) => {
-  const response = await fetch(import.meta.env.VITE_AUTH_API_URL + '/refresh', {
+  return apiRequest(endpoints.auth.refresh, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken, deviceInfo }),
+    body: { refreshToken, deviceInfo },
   });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.message || 'Failed to refresh token');
-  }
-
-  return await response.json(); // Returns { accessToken, refreshToken }
 };
+
+export const logoutUser = async (refreshToken) => apiRequest(endpoints.auth.logout, {
+  method: 'POST',
+  body: { refreshToken },
+});
+
+export const logoutAllDevices = async (authFetch) => authFetch(endpoints.auth.logoutAll, { method: 'POST' });

@@ -18,13 +18,9 @@ function AuthPage() {
   }, [isLoggedIn, navigate]);
 
   const handleLogin = async (username, password, deviceInfo) => {
-    try {
-      const tokens = await loginUser(username, password, deviceInfo);
-      login(tokens);
-      navigate('/');
-    } catch (error) {
-      throw error;
-    }
+    const tokens = await loginUser(username, password, deviceInfo);
+    login(tokens);
+    navigate('/');
   };
 
   const handleRegister = async (registrationData) => {
