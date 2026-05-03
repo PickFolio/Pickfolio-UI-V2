@@ -11,7 +11,7 @@ import JoinContestForm from './JoinContestForm';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { CardSkeleton } from './ui/Skeleton';
-import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse } from '../services/contestService';
+import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse, getSuggestedFormat } from '../services/contestService';
 import { logoutUser } from '../services/authService';
 
 const formatCurrency = (value) => {
@@ -212,7 +212,18 @@ function MarketPulse() {
   );
 }
 
-function StrategyPrompt({ onCreate }) {
+function StrategyPrompt({ onCreate, authFetch }) {
+  const [format, setFormat] = useState(null);
+
+  useEffect(() => {
+    if (!authFetch) return;
+    getSuggestedFormat(authFetch)
+      .then((data) => {
+        if (data) setFormat(data);
+      })
+      .catch((err) => console.error('Failed to fetch suggested format', err));
+  }, [authFetch]);
+
   return (
     <Motion.section
       className="card card-pad spotlight-card"
@@ -224,11 +235,11 @@ function StrategyPrompt({ onCreate }) {
       <div className="stack" style={{ position: 'relative', zIndex: 1 }}>
         <Badge tone="success"><Sparkles size={14} /> Suggested format</Badge>
         <div>
-          <h2 className="section-title" style={{ marginBottom: 'var(--space-2)' }}>15-minute opening range battle</h2>
-          <p className="muted" style={{ margin: 0 }}>A compact contest format for fast decisions after market open. Backend support can later prefill this as a template.</p>
+          <h2 className="section-title" style={{ marginBottom: 'var(--space-2)' }}>{format ? format.title : 'Loading...'}</h2>
+          <p className="muted" style={{ margin: 0 }}>{format ? format.description : ''}</p>
         </div>
       </div>
-      <Button onClick={onCreate} style={{ position: 'relative', zIndex: 1, width: 'fit-content' }}>
+      <Button onClick={() => onCreate(format)} disabled={!format} style={{ position: 'relative', zIndex: 1, width: 'fit-content' }}>
         Use this idea <ArrowRight size={16} />
       </Button>
     </Motion.section>
@@ -283,6 +294,7 @@ function ContestLobby() {
   const [isJoining, setIsJoining] = useState(false);
   const [joiningContestId, setJoiningContestId] = useState(null);
   const [newlyCreatedContest, setNewlyCreatedContest] = useState(null);
+  const [createFormInitialData, setCreateFormInitialData] = useState(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -383,7 +395,7 @@ function ContestLobby() {
 
   return (
     <div className="app-shell page">
-      <AppHeader onCreate={() => setShowCreateModal(true)} onJoin={() => setShowJoinModal(true)} onLogout={handleLogout} />
+      <AppHeader onCreate={() => { setCreateFormInitialData(null); setShowCreateModal(true); }} onJoin={() => setShowJoinModal(true)} onLogout={handleLogout} />
       <main className="container page-main">
         <section className="lobby-hero">
           <div className="lobby-hero-inner">
@@ -397,7 +409,7 @@ function ContestLobby() {
               <h1>Make the market a game.</h1>
               <p>Enter a live room, create a private challenge, or discover a public contest without digging through a dashboard.</p>
               <div className="hero-actions" style={{ marginTop: 'var(--space-5)' }}>
-                <Button onClick={() => setShowCreateModal(true)}><Plus size={18} /> Create contest</Button>
+                <Button onClick={() => { setCreateFormInitialData(null); setShowCreateModal(true); }}><Plus size={18} /> Create contest</Button>
                 <Button variant="secondary" onClick={() => setShowJoinModal(true)}><KeyRound size={18} /> Enter invite</Button>
               </div>
             </Motion.div>
@@ -431,7 +443,7 @@ function ContestLobby() {
         ) : (
           <div className="stack" style={{ gap: 'var(--space-10)' }}>
             <div className="lobby-overview">
-              <StrategyPrompt onCreate={() => setShowCreateModal(true)} />
+              <StrategyPrompt authFetch={authFetch} onCreate={(data) => { setCreateFormInitialData(data); setShowCreateModal(true); }} />
               <MarketPulse />
             </div>
 
@@ -450,7 +462,7 @@ function ContestLobby() {
             <ContestSection
               title="My upcoming contests"
               contests={grouped.upcoming}
-              empty={<EmptyState icon={CalendarDays} title="No upcoming contests" message="Create one or join a public contest to get started." action={<Button onClick={() => setShowCreateModal(true)}><Plus size={18} /> Create contest</Button>} />}
+              empty={<EmptyState icon={CalendarDays} title="No upcoming contests" message="Create one or join a public contest to get started." action={<Button onClick={() => { setCreateFormInitialData(null); setShowCreateModal(true); }}><Plus size={18} /> Create contest</Button>} />}
             >
               <AnimatePresence>
                 {grouped.upcoming.map((contest) => <ContestCard key={contest.id} contest={contest} currentUserId={userId} onAction={(id) => navigate(`/contest/${id}`)} actionLabel="View details" />)}
@@ -478,7 +490,7 @@ function ContestLobby() {
         )}
       </main>
 
-      <Modal isOpen={showCreateModal} onClose={() => { setShowCreateModal(false); setNewlyCreatedContest(null); }} title={newlyCreatedContest ? 'Share invite code' : 'Create contest'}>
+      <Modal isOpen={showCreateModal} onClose={() => { setShowCreateModal(false); setNewlyCreatedContest(null); setCreateFormInitialData(null); }} title={newlyCreatedContest ? 'Share invite code' : 'Create contest'}>
         {newlyCreatedContest ? (
           <div className="stack">
             <div className="empty-state" style={{ minHeight: '11rem' }}>
@@ -490,7 +502,7 @@ function ContestLobby() {
             <Button onClick={() => { navigator.clipboard.writeText(newlyCreatedContest.inviteCode); toast.success('Copied.'); }}>Copy code</Button>
           </div>
         ) : (
-          <CreateContestForm onSubmit={handleCreateContest} onCancel={() => setShowCreateModal(false)} isLoading={isCreating} />
+          <CreateContestForm key={createFormInitialData ? createFormInitialData.id : 'empty'} onSubmit={handleCreateContest} onCancel={() => setShowCreateModal(false)} isLoading={isCreating} initialData={createFormInitialData} />
         )}
       </Modal>
 

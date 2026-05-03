@@ -67,3 +67,7 @@ export const joinContestByCode = async (authFetch, inviteCode) => {
 export const searchStocks = async (authFetch, query) => {
   return await authFetch(endpoints.contest.search(query));
 };
+
+export const getSuggestedFormat = async (authFetch) => {
+  return await authFetch(endpoints.contest.suggestedFormat);
+};

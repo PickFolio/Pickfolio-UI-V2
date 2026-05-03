@@ -34,15 +34,17 @@ const validate = (formData) => {
   return errors;
 };
 
-function CreateContestForm({ onSubmit, onCancel, isLoading }) {
+function CreateContestForm({ onSubmit, onCancel, isLoading, initialData }) {
   const defaults = getSmartDefaultTimes();
   const [formData, setFormData] = useState({
-    name: '',
+    name: initialData?.suggestedName || '',
     isPrivate: false,
     startTime: defaults.startTime,
-    endTime: defaults.endTime,
-    virtualBudget: '100000',
-    maxParticipants: '10',
+    endTime: initialData?.durationMinutes 
+      ? formatForInput(new Date(new Date(defaults.startTime).getTime() + initialData.durationMinutes * 60000))
+      : defaults.endTime,
+    virtualBudget: initialData?.virtualBudget || '100000',
+    maxParticipants: initialData?.maxParticipants || '10',
   });
   const [errors, setErrors] = useState({});
 

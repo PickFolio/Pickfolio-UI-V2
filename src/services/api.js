@@ -61,6 +61,7 @@ export const endpoints = {
     transactions: (contestId) => `${CONTEST_API_URL}/${contestId}/transactions`,
     quote: (symbol) => `${CONTEST_API_URL}/quote/${encodeURIComponent(symbol)}`,
     search: (query) => `${CONTEST_API_URL}/search?q=${encodeURIComponent(query)}`,
+    suggestedFormat: `${CONTEST_API_URL}/suggested-format`,
   },
   marketData: {
     history: (symbol, range = "1mo", interval = "1d") =>
