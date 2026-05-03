@@ -138,11 +138,38 @@ function ContestSection({ title, contests, empty, children }) {
   );
 }
 
+function Sparkline({ data, color }) {
+  if (!data || data.length < 2) return null;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 100;
+  const height = 30;
+  // Add vertical padding so the stroke doesn't get clipped
+  const paddingY = 4;
+  const drawHeight = height - paddingY * 2;
+
+  const points = data
+    .map((val, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = paddingY + drawHeight - ((val - min) / range) * drawHeight;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <polyline fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+    </svg>
+  );
+}
+
 function MarketPulse() {
   const [rows, setRows] = useState([
-    { symbol: 'NIFTY', move: '--', tone: 'var(--text-secondary)' },
-    { symbol: 'BANK', move: '--', tone: 'var(--text-secondary)' },
-    { symbol: 'IT', move: '--', tone: 'var(--text-secondary)' },
+    { symbol: 'NIFTY', move: '--', tone: 'var(--text-secondary)', sparkline: [] },
+    { symbol: 'BANK', move: '--', tone: 'var(--text-secondary)', sparkline: [] },
+    { symbol: 'IT', move: '--', tone: 'var(--text-secondary)', sparkline: [] },
   ]);
 
   useEffect(() => {
@@ -175,7 +202,9 @@ function MarketPulse() {
       {rows.map((row) => (
         <div className="pulse-row" key={row.symbol}>
           <strong>{row.symbol}</strong>
-          <div className="sparkline" aria-hidden="true" />
+          <div className="sparkline" aria-hidden="true">
+            <Sparkline data={row.sparkline} color={row.tone} />
+          </div>
           <strong style={{ color: row.tone }}>{row.move}</strong>
         </div>
       ))}
