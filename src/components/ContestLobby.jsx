@@ -213,16 +213,31 @@ function MarketPulse() {
 }
 
 function StrategyPrompt({ onCreate, authFetch }) {
-  const [format, setFormat] = useState(null);
+  const [formats, setFormats] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     if (!authFetch) return;
     getSuggestedFormat(authFetch)
       .then((data) => {
-        if (data) setFormat(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setFormats(data);
+        } else if (data && !Array.isArray(data)) {
+          setFormats([data]);
+        }
       })
       .catch((err) => console.error('Failed to fetch suggested format', err));
   }, [authFetch]);
+
+  useEffect(() => {
+    if (formats.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % formats.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [formats.length]);
+
+  const format = formats[currentIndex];
 
   return (
     <Motion.section
@@ -231,15 +246,41 @@ function StrategyPrompt({ onCreate, authFetch }) {
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.32 }}
+      style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
     >
-      <div className="stack" style={{ position: 'relative', zIndex: 1 }}>
-        <Badge tone="success"><Sparkles size={14} /> Suggested format</Badge>
-        <div>
-          <h2 className="section-title" style={{ marginBottom: 'var(--space-2)' }}>{format ? format.title : 'Loading...'}</h2>
-          <p className="muted" style={{ margin: 0 }}>{format ? format.description : ''}</p>
+      <div className="stack" style={{ position: 'relative', zIndex: 1, flexGrow: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Badge tone="success"><Sparkles size={14} /> Suggested format</Badge>
+          {formats.length > 1 && (
+            <div className="carousel-indicators" style={{ display: 'flex', gap: '4px' }}>
+              {formats.map((_, i) => (
+                <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: i === currentIndex ? 'var(--color-success)' : 'var(--color-border)', transition: 'background 0.3s' }} />
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ minHeight: '5.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <AnimatePresence mode="wait">
+            {format ? (
+              <Motion.div
+                key={format.id}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h2 className="section-title" style={{ marginBottom: 'var(--space-2)' }}>{format.title}</h2>
+                <p className="muted" style={{ margin: 0 }}>{format.description}</p>
+              </Motion.div>
+            ) : (
+              <Motion.div key="loading">
+                <h2 className="section-title" style={{ marginBottom: 'var(--space-2)' }}>Loading...</h2>
+              </Motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-      <Button onClick={() => onCreate(format)} disabled={!format} style={{ position: 'relative', zIndex: 1, width: 'fit-content' }}>
+      <Button onClick={() => onCreate(format)} disabled={!format} style={{ position: 'relative', zIndex: 1, width: 'fit-content', marginTop: 'var(--space-4)' }}>
         Use this idea <ArrowRight size={16} />
       </Button>
     </Motion.section>
