@@ -68,5 +68,6 @@ export const endpoints = {
     validate: (symbol) => `${MARKET_DATA_API_URL}/validate/${encodeURIComponent(symbol)}`,
     quote: (symbol) => `${MARKET_DATA_API_URL}/quote/${encodeURIComponent(symbol)}`,
     search: (query) => `${MARKET_DATA_API_URL}/search?query=${encodeURIComponent(query)}`,
+    pulse: `${MARKET_DATA_API_URL}/pulse`,
   },
 };

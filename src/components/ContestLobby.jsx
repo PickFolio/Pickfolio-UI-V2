@@ -11,7 +11,7 @@ import JoinContestForm from './JoinContestForm';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { CardSkeleton } from './ui/Skeleton';
-import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode } from '../services/contestService';
+import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse } from '../services/contestService';
 import { logoutUser } from '../services/authService';
 
 const formatCurrency = (value) => {
@@ -139,11 +139,23 @@ function ContestSection({ title, contests, empty, children }) {
 }
 
 function MarketPulse() {
-  const rows = [
-    { symbol: 'NIFTY', move: '+0.42%', tone: 'var(--color-success)' },
-    { symbol: 'BANK', move: '-0.18%', tone: 'var(--color-error)' },
-    { symbol: 'IT', move: '+0.66%', tone: 'var(--color-success)' },
-  ];
+  const [rows, setRows] = useState([
+    { symbol: 'NIFTY', move: '--', tone: 'var(--text-secondary)' },
+    { symbol: 'BANK', move: '--', tone: 'var(--text-secondary)' },
+    { symbol: 'IT', move: '--', tone: 'var(--text-secondary)' },
+  ]);
+
+  useEffect(() => {
+    getMarketPulse()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setRows(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch market pulse', err);
+      });
+  }, []);
 
   return (
     <Motion.section
