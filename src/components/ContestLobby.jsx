@@ -554,6 +554,7 @@ function ContestLobby() {
   const [joiningContestId, setJoiningContestId] = useState(null);
   const [newlyCreatedContest, setNewlyCreatedContest] = useState(null);
   const [createFormInitialData, setCreateFormInitialData] = useState(null);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -742,7 +743,18 @@ function ContestLobby() {
 
             {grouped.history.length ? (
               <ContestSection title="Completed contests" contests={grouped.history} empty={null}>
-                {grouped.history.map((contest) => <ContestCard key={contest.id} contest={contest} currentUserId={userId} onAction={(id) => navigate(`/contest/${id}`)} actionLabel="View results" />)}
+                <AnimatePresence>
+                  {(showAllHistory ? grouped.history : grouped.history.slice(0, 3)).map((contest) => (
+                    <ContestCard key={contest.id} contest={contest} currentUserId={userId} onAction={(id) => navigate(`/contest/${id}`)} actionLabel="View results" />
+                  ))}
+                </AnimatePresence>
+                {grouped.history.length > 3 && (
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
+                    <Button variant="secondary" onClick={() => setShowAllHistory(!showAllHistory)}>
+                      {showAllHistory ? 'Show less' : `Show more (${grouped.history.length - 3} more)`}
+                    </Button>
+                  </div>
+                )}
               </ContestSection>
             ) : null}
           </div>
