@@ -36,6 +36,10 @@ export const getMarketPulse = async () => {
   return await apiRequest(endpoints.marketData.pulse);
 };
 
+export const getMarketTrending = async () => {
+  return await apiRequest(endpoints.marketData.trending);
+};
+
 export const executeTransaction = async (authFetch, contestId, { stockSymbol, transactionType, quantity }) => {
   return await authFetch(endpoints.contest.transactions(contestId), {
     method: 'POST',

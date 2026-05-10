@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Flame, KeyRound, LineChart, LogOut, Plus, Shield, Sparkles, Trophy, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Flame, KeyRound, LineChart, LogOut, Plus, Shield, Sparkles, Trophy, Users, BellRing, Wallet, TrendingDown, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
 import Modal from './Modal';
@@ -11,7 +11,7 @@ import JoinContestForm from './JoinContestForm';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { CardSkeleton } from './ui/Skeleton';
-import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse, getSuggestedFormat } from '../services/contestService';
+import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse, getSuggestedFormat, getPortfolio, getMarketTrending } from '../services/contestService';
 import { logoutUser } from '../services/authService';
 
 const formatCurrency = (value) => {
@@ -20,6 +20,92 @@ const formatCurrency = (value) => {
   if (num >= 100000) return `Rs. ${(num / 100000).toFixed(2)} Lac`;
   return `Rs. ${num.toLocaleString('en-IN')}`;
 };
+
+function MarketTrending() {
+  const [data, setData] = useState({ gainers: [], losers: [] });
+  const [activeTab, setActiveTab] = useState('gainers');
+
+  useEffect(() => {
+    let mounted = true;
+    getMarketTrending()
+      .then((res) => {
+        if (mounted && res) setData(res);
+      })
+      .catch((err) => console.error('Failed to fetch trending', err));
+    return () => { mounted = false; };
+  }, []);
+
+  const currentList = activeTab === 'gainers' ? data.gainers : data.losers;
+
+  return (
+    <div className="card card-pad stack" style={{ minHeight: '8rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p className="eyebrow" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Flame size={14} color="var(--color-accent)" /> Trending
+        </p>
+        <div style={{ display: 'flex', gap: '8px', background: 'var(--color-surface-hover)', padding: '2px', borderRadius: '4px' }}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setActiveTab('gainers'); }}
+            style={{ 
+              background: activeTab === 'gainers' ? 'var(--color-surface)' : 'transparent', 
+              color: activeTab === 'gainers' ? 'var(--color-text)' : 'var(--color-text-muted)',
+              border: 'none', padding: '2px 8px', borderRadius: '2px', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600
+            }}
+          >
+            Gainers
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setActiveTab('losers'); }}
+            style={{ 
+              background: activeTab === 'losers' ? 'var(--color-surface)' : 'transparent', 
+              color: activeTab === 'losers' ? 'var(--color-text)' : 'var(--color-text-muted)',
+              border: 'none', padding: '2px 8px', borderRadius: '2px', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600
+            }}
+          >
+            Losers
+          </button>
+        </div>
+      </div>
+
+      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
+        {currentList.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
+             <Flame size={16} className="muted" />
+             <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Loading data...</span>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+             <Motion.div 
+               key={activeTab}
+               initial={{ opacity: 0, x: activeTab === 'gainers' ? -10 : 10 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: activeTab === 'gainers' ? 10 : -10 }}
+               transition={{ duration: 0.2 }}
+               style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+             >
+                {currentList.slice(0, 3).map((stock) => {
+                   const cleanSymbol = stock.symbol.replace('.NS', '');
+                   const isGainer = stock.pChange >= 0;
+                   const colorVar = isGainer ? 'var(--color-success)' : 'var(--color-error)';
+                   const Icon = isGainer ? TrendingUp : TrendingDown;
+                   
+                   return (
+                     <div key={stock.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                       <strong style={{ fontSize: 'var(--text-sm)' }}>{cleanSymbol}</strong>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colorVar }}>
+                         <Icon size={12} />
+                         <strong style={{ fontSize: 'var(--text-sm)' }}>{Math.abs(stock.pChange).toFixed(1)}%</strong>
+                       </div>
+                     </div>
+                   )
+                })}
+             </Motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const formatDateTime = (value) => {
   if (!value) return 'Not scheduled';
@@ -287,35 +373,200 @@ function StrategyPrompt({ onCreate, authFetch }) {
   );
 }
 
-function LiveWorkspace() {
-  const items = [
-    ['Smart watchlist', 'Pin symbols for a contest before the market opens.'],
-    ['Risk presets', 'Add backend rules later for max position size and trade limits.'],
-    ['Result recap', 'Generate a post-contest summary once rankings settle.'],
-  ];
+function ActionCenter({ myContests, authFetch, navigate }) {
+  const [alerts, setAlerts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const generateAlerts = async () => {
+      setIsLoading(true);
+      const newAlerts = [];
+      const now = new Date();
+
+      const formatTimeLeft = (hours) => {
+        if (hours < 1) {
+          const mins = Math.max(1, Math.ceil(hours * 60));
+          return `${mins} minute${mins !== 1 ? 's' : ''}`;
+        }
+        return `${Math.ceil(hours)} hour${Math.ceil(hours) !== 1 ? 's' : ''}`;
+      };
+
+      myContests.forEach(contest => {
+        if (contest.status === 'LIVE') {
+          const end = new Date(contest.endTime.endsWith('Z') ? contest.endTime : `${contest.endTime}Z`);
+          const hoursLeft = (end - now) / (1000 * 60 * 60);
+          if (hoursLeft > 0 && hoursLeft <= 48) {
+            newAlerts.push({
+              id: `end-${contest.id}`,
+              tone: 'warning',
+              icon: Clock3,
+              title: 'Ending soon',
+              message: `"${contest.name}" ends in ${formatTimeLeft(hoursLeft)}.`,
+              contestId: contest.id
+            });
+          }
+        } else if (contest.status === 'OPEN') {
+          const start = new Date(contest.startTime.endsWith('Z') ? contest.startTime : `${contest.startTime}Z`);
+          const hoursUntil = (start - now) / (1000 * 60 * 60);
+          if (hoursUntil > 0 && hoursUntil <= 24) {
+            newAlerts.push({
+              id: `start-${contest.id}`,
+              tone: 'neutral',
+              icon: CalendarDays,
+              title: 'Starting soon',
+              message: `"${contest.name}" begins in ${formatTimeLeft(hoursUntil)}.`,
+              contestId: contest.id
+            });
+          }
+        }
+      });
+
+      const liveContests = myContests.filter(c => c.status === 'LIVE');
+      for (const contest of liveContests) {
+        try {
+          const portfolio = await getPortfolio(authFetch, contest.id);
+          if (!mounted) return;
+
+          if (portfolio && portfolio.cashBalance > 0 && (portfolio.cashBalance / portfolio.totalPortfolioValue) > 0.4) {
+            newAlerts.push({
+              id: `cash-${contest.id}`,
+              tone: 'warning',
+              icon: Wallet,
+              title: 'Idle cash detected',
+              message: `You have ${formatCurrency(portfolio.cashBalance)} uninvested.`,
+              contestId: contest.id
+            });
+          }
+
+          if (portfolio && portfolio.holdings) {
+            portfolio.holdings.forEach(h => {
+              const totalCost = h.quantity * h.averageBuyPrice;
+              if (totalCost > 0) {
+                const pctChange = (h.profit / totalCost) * 100;
+                if (pctChange <= -5) {
+                  newAlerts.push({
+                    id: `drop-${h.id}`,
+                    tone: 'error',
+                    icon: TrendingDown,
+                    title: 'Position alert',
+                    message: `${h.stockSymbol.replace('.NS', '')} dropped ${Math.abs(pctChange).toFixed(1)}%.`,
+                    contestId: contest.id
+                  });
+                } else if (pctChange >= 5) {
+                  newAlerts.push({
+                    id: `up-${h.id}`,
+                    tone: 'success',
+                    icon: TrendingUp,
+                    title: 'Momentum alert',
+                    message: `${h.stockSymbol.replace('.NS', '')} is up ${pctChange.toFixed(1)}%.`,
+                    contestId: contest.id
+                  });
+                }
+              }
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to fetch portfolio for ${contest.id}`, err);
+        }
+      }
+
+      if (mounted) {
+        newAlerts.sort((a, b) => {
+          const tonePriority = { error: 3, warning: 2, success: 1, neutral: 0 };
+          return (tonePriority[b.tone] || 0) - (tonePriority[a.tone] || 0);
+        });
+        setAlerts(newAlerts.slice(0, 5));
+        setIsLoading(false);
+      }
+    };
+
+    if (myContests.length > 0) {
+      generateAlerts();
+    } else {
+      setIsLoading(false);
+      setAlerts([]);
+    }
+
+    return () => { mounted = false; };
+  }, [myContests, authFetch]);
+
+  useEffect(() => {
+    if (alerts.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % alerts.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [alerts.length]);
+
+  if (!isLoading && alerts.length === 0) return null;
+
+  const currentAlert = alerts[currentIndex];
+  const activeTone = currentAlert?.tone === 'neutral' ? 'neutral' : (currentAlert?.tone || 'live');
+  const cssTone = activeTone === 'neutral' ? 'text-muted' : activeTone;
 
   return (
     <Motion.section
-      className="card card-pad stack"
+      className="grid-auto"
       initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.32, ease: 'easeOut' }}
     >
-      <div className="spread">
-        <div>
-          <p className="eyebrow">Live workspace</p>
-          <h2 className="section-title" style={{ margin: 0 }}>Ready for backend plug-ins</h2>
+      <div 
+        className="card card-pad card-interactive" 
+        style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', cursor: 'pointer', minHeight: '8rem' }}
+        onClick={() => currentAlert && navigate(`/contest/${currentAlert.contestId}`)}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+          <p className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, color: `var(--color-${cssTone === 'text-muted' ? 'accent' : cssTone})` }}>
+            <BellRing size={14} /> Smart alert
+          </p>
+          {alerts.length > 1 && (
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {alerts.map((_, i) => (
+                <div key={i} style={{ width: '4px', height: '4px', borderRadius: '50%', background: i === currentIndex ? `var(--color-${cssTone === 'text-muted' ? 'accent' : cssTone})` : 'var(--color-border)', transition: 'background 0.3s' }} />
+              ))}
+            </div>
+          )}
         </div>
-        <Sparkles color="var(--color-accent)" />
+
+        <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+          <AnimatePresence mode="wait">
+            {currentAlert ? (
+              <Motion.div
+                key={currentAlert.id}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
+                style={{ width: '100%' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  {(() => {
+                    const Icon = currentAlert.icon;
+                    return <Icon size={18} color={`var(--color-${cssTone})`} />;
+                  })()}
+                  <strong style={{ fontSize: 'var(--text-md)' }}>{currentAlert.title}</strong>
+                </div>
+                <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)', lineHeight: 1.4 }}>{currentAlert.message}</p>
+              </Motion.div>
+            ) : (
+              <Motion.div key="loading" style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+                <BellRing size={18} className="muted" />
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Scanning portfolio...</span>
+              </Motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-      <div className="grid-auto">
-        {items.map(([title, text]) => (
-          <div className="mini-stat" key={title} style={{ minHeight: '7rem' }}>
-            <span>{title}</span>
-            <strong style={{ fontSize: 'var(--text-md)', fontWeight: 750 }}>{text}</strong>
-          </div>
-        ))}
+
+      <MarketTrending />
+      
+      <div className="card card-pad" style={{ border: '1px dashed var(--color-border)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6, minHeight: '8rem' }}>
+         <Plus size={20} className="muted" style={{ marginBottom: '8px' }} />
+         <span className="muted" style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>Risk plugin space</span>
       </div>
     </Motion.section>
   );
@@ -488,7 +739,7 @@ function ContestLobby() {
               <MarketPulse />
             </div>
 
-            <LiveWorkspace />
+            <ActionCenter myContests={myContests} authFetch={authFetch} navigate={navigate} />
 
             <ContestSection
               title="Live contests"
