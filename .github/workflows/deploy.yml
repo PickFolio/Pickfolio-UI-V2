@@ -60,7 +60,7 @@ jobs:
             --exclude 'dist/' \
             --exclude 'node_modules/' \
             --exclude '.env.local' \
-            ./ "oracle-vm:${REMOTE_DIR// /\\ }/"
+            ./ "oracle-vm:${REMOTE_DIR}/"
 
       - name: Rebuild and restart pickfolio-ui
         env:
