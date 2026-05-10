@@ -21,86 +21,57 @@ const formatCurrency = (value) => {
   return `Rs. ${num.toLocaleString('en-IN')}`;
 };
 
-function MarketTrending() {
-  const [data, setData] = useState({ gainers: [], losers: [] });
-  const [activeTab, setActiveTab] = useState('gainers');
+function TrendingCard({ type }) {
+  const [data, setData] = useState([]);
 
   useEffect(() => {
     let mounted = true;
     getMarketTrending()
       .then((res) => {
-        if (mounted && res) setData(res);
+        if (mounted && res) setData(type === 'gainers' ? res.gainers : res.losers);
       })
       .catch((err) => console.error('Failed to fetch trending', err));
     return () => { mounted = false; };
-  }, []);
+  }, [type]);
 
-  const currentList = activeTab === 'gainers' ? data.gainers : data.losers;
+  const isGainer = type === 'gainers';
+  const title = isGainer ? 'Top Gainers' : 'Top Losers';
+  const Icon = isGainer ? TrendingUp : TrendingDown;
+  const colorVar = isGainer ? 'var(--color-success)' : 'var(--color-error)';
 
   return (
     <div className="card card-pad stack" style={{ minHeight: '8rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p className="eyebrow" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Flame size={14} color="var(--color-accent)" /> Trending
+          <Flame size={14} color="var(--color-accent)" /> {title}
+          <span style={{ fontSize: '0.85em', opacity: 0.5, textTransform: 'none', letterSpacing: 'normal' }} title="Powered by Nifty Total Market Index">
+            (Total Market)
+          </span>
         </p>
-        <div style={{ display: 'flex', gap: '8px', background: 'var(--color-surface-hover)', padding: '2px', borderRadius: '4px' }}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); setActiveTab('gainers'); }}
-            style={{ 
-              background: activeTab === 'gainers' ? 'var(--color-surface)' : 'transparent', 
-              color: activeTab === 'gainers' ? 'var(--color-text)' : 'var(--color-text-muted)',
-              border: 'none', padding: '2px 8px', borderRadius: '2px', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600
-            }}
-          >
-            Gainers
-          </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); setActiveTab('losers'); }}
-            style={{ 
-              background: activeTab === 'losers' ? 'var(--color-surface)' : 'transparent', 
-              color: activeTab === 'losers' ? 'var(--color-text)' : 'var(--color-text-muted)',
-              border: 'none', padding: '2px 8px', borderRadius: '2px', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600
-            }}
-          >
-            Losers
-          </button>
-        </div>
       </div>
 
       <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-        {currentList.length === 0 ? (
+        {data.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
              <Flame size={16} className="muted" />
              <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Loading data...</span>
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-             <Motion.div 
-               key={activeTab}
-               initial={{ opacity: 0, x: activeTab === 'gainers' ? -10 : 10 }}
-               animate={{ opacity: 1, x: 0 }}
-               exit={{ opacity: 0, x: activeTab === 'gainers' ? 10 : -10 }}
-               transition={{ duration: 0.2 }}
-               style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
-             >
-                {currentList.slice(0, 3).map((stock) => {
-                   const cleanSymbol = stock.symbol.replace('.NS', '');
-                   const isGainer = stock.pChange >= 0;
-                   const colorVar = isGainer ? 'var(--color-success)' : 'var(--color-error)';
-                   const Icon = isGainer ? TrendingUp : TrendingDown;
-                   
-                   return (
-                     <div key={stock.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <strong style={{ fontSize: 'var(--text-sm)' }}>{cleanSymbol}</strong>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colorVar }}>
-                         <Icon size={12} />
-                         <strong style={{ fontSize: 'var(--text-sm)' }}>{Math.abs(stock.pChange).toFixed(1)}%</strong>
-                       </div>
-                     </div>
-                   )
-                })}
-             </Motion.div>
-          </AnimatePresence>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {data.slice(0, 3).map((stock) => {
+               const cleanSymbol = stock.symbol.replace('.NS', '');
+               
+               return (
+                 <div key={stock.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <strong style={{ fontSize: 'var(--text-sm)' }}>{cleanSymbol}</strong>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: colorVar }}>
+                     <Icon size={12} />
+                     <strong style={{ fontSize: 'var(--text-sm)' }}>{Math.abs(stock.pChange).toFixed(1)}%</strong>
+                   </div>
+                 </div>
+               )
+            })}
+          </div>
         )}
       </div>
     </div>
@@ -562,12 +533,8 @@ function ActionCenter({ myContests, authFetch, navigate }) {
         </div>
       </div>
 
-      <MarketTrending />
-      
-      <div className="card card-pad" style={{ border: '1px dashed var(--color-border)', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6, minHeight: '8rem' }}>
-         <Plus size={20} className="muted" style={{ marginBottom: '8px' }} />
-         <span className="muted" style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>Risk plugin space</span>
-      </div>
+      <TrendingCard type="gainers" />
+      <TrendingCard type="losers" />
     </Motion.section>
   );
 }
