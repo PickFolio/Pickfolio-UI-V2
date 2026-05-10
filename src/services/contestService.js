@@ -72,6 +72,6 @@ export const searchStocks = async (authFetch, query) => {
   return await authFetch(endpoints.contest.search(query));
 };
 
-export const getSuggestedFormat = async (authFetch) => {
-  return await authFetch(endpoints.contest.suggestedFormat);
+export const getSuggestedFormat = async () => {
+  return await apiRequest(endpoints.contest.suggestedFormat);
 };

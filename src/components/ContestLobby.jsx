@@ -274,8 +274,7 @@ function StrategyPrompt({ onCreate, authFetch }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    if (!authFetch) return;
-    getSuggestedFormat(authFetch)
+    getSuggestedFormat()
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setFormats(data);
@@ -284,7 +283,7 @@ function StrategyPrompt({ onCreate, authFetch }) {
         }
       })
       .catch((err) => console.error('Failed to fetch suggested format', err));
-  }, [authFetch]);
+  }, []);
 
   useEffect(() => {
     if (formats.length <= 1) return;
