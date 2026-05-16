@@ -14,10 +14,18 @@ const MARKET_DATA_API_URL = import.meta.env.VITE_MARKET_DATA_API_URL || "/api/ma
 
 async function parseResponse(response) {
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
 
   if (!response.ok) {
-    const message = data?.message || data?.error || data?.detail || "Request failed.";
+    const message = data?.message || data?.error || data?.detail || (typeof data === "string" ? data : "Request failed.");
     throw new Error(message);
   }
 

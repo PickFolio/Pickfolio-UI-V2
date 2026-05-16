@@ -1,5 +1,9 @@
 import { apiRequest, endpoints } from './api';
 
+const MARKET_TRENDING_TTL_MS = 60_000;
+let marketTrendingCache = null;
+let marketTrendingPromise = null;
+
 export const getMyContests = async (authFetch) => {
   return await authFetch(endpoints.contest.myContests);
 };
@@ -37,7 +41,22 @@ export const getMarketPulse = async () => {
 };
 
 export const getMarketTrending = async () => {
-  return await apiRequest(endpoints.marketData.trending);
+  if (marketTrendingCache && Date.now() - marketTrendingCache.fetchedAt < MARKET_TRENDING_TTL_MS) {
+    return marketTrendingCache.data;
+  }
+
+  if (!marketTrendingPromise) {
+    marketTrendingPromise = apiRequest(endpoints.marketData.trending)
+      .then((data) => {
+        marketTrendingCache = { data, fetchedAt: Date.now() };
+        return data;
+      })
+      .finally(() => {
+        marketTrendingPromise = null;
+      });
+  }
+
+  return await marketTrendingPromise;
 };
 
 export const executeTransaction = async (authFetch, contestId, { stockSymbol, transactionType, quantity }) => {

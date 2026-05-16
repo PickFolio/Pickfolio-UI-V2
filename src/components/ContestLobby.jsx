@@ -23,14 +23,24 @@ const formatCurrency = (value) => {
 
 function TrendingCard({ type }) {
   const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
+    setIsLoading(true);
+    setError('');
     getMarketTrending()
       .then((res) => {
         if (mounted && res) setData(type === 'gainers' ? res.gainers : res.losers);
       })
-      .catch((err) => console.error('Failed to fetch trending', err));
+      .catch((err) => {
+        console.error('Failed to fetch trending', err);
+        if (mounted) setError('Market data unavailable');
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
     return () => { mounted = false; };
   }, [type]);
 
@@ -51,10 +61,20 @@ function TrendingCard({ type }) {
       </div>
 
       <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px' }}>
-        {data.length === 0 ? (
+        {isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
              <Flame size={16} className="muted" />
-             <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Loading data...</span>
+             <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Loading market data...</span>
+          </div>
+        ) : error ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7 }}>
+             <Icon size={16} color="var(--color-text-muted)" />
+             <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{error}</span>
+          </div>
+        ) : data.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7 }}>
+             <Icon size={16} color="var(--color-text-muted)" />
+             <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>No movers found</span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -252,7 +272,7 @@ function MarketPulse() {
       <div className="spread">
         <div>
           <p className="eyebrow">Market pulse</p>
-          <h2 className="section-title" style={{ margin: 0 }}>Today’s drift</h2>
+          <h2 className="section-title" style={{ margin: 0 }}>Today's drift</h2>
         </div>
         <LineChart color="var(--color-accent)" />
       </div>
@@ -269,7 +289,7 @@ function MarketPulse() {
   );
 }
 
-function StrategyPrompt({ onCreate, authFetch }) {
+function StrategyPrompt({ onCreate }) {
   const [formats, setFormats] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -394,53 +414,62 @@ function ActionCenter({ myContests, authFetch, navigate }) {
       });
 
       const liveContests = myContests.filter(c => c.status === 'LIVE');
-      for (const contest of liveContests) {
-        try {
-          const portfolio = await getPortfolio(authFetch, contest.id);
-          if (!mounted) return;
+      const portfolioResults = await Promise.allSettled(
+        liveContests.map((contest) => getPortfolio(authFetch, contest.id))
+      );
+      if (!mounted) return;
 
-          if (portfolio && portfolio.cashBalance > 0 && (portfolio.cashBalance / portfolio.totalPortfolioValue) > 0.4) {
-            newAlerts.push({
-              id: `cash-${contest.id}`,
-              tone: 'warning',
-              icon: Wallet,
-              title: 'Idle cash detected',
-              message: `You have ${formatCurrency(portfolio.cashBalance)} uninvested.`,
-              contestId: contest.id
-            });
-          }
-
-          if (portfolio && portfolio.holdings) {
-            portfolio.holdings.forEach(h => {
-              const totalCost = h.quantity * h.averageBuyPrice;
-              if (totalCost > 0) {
-                const pctChange = (h.profit / totalCost) * 100;
-                if (pctChange <= -5) {
-                  newAlerts.push({
-                    id: `drop-${h.id}`,
-                    tone: 'error',
-                    icon: TrendingDown,
-                    title: 'Position alert',
-                    message: `${h.stockSymbol.replace('.NS', '')} dropped ${Math.abs(pctChange).toFixed(1)}%.`,
-                    contestId: contest.id
-                  });
-                } else if (pctChange >= 5) {
-                  newAlerts.push({
-                    id: `up-${h.id}`,
-                    tone: 'success',
-                    icon: TrendingUp,
-                    title: 'Momentum alert',
-                    message: `${h.stockSymbol.replace('.NS', '')} is up ${pctChange.toFixed(1)}%.`,
-                    contestId: contest.id
-                  });
-                }
-              }
-            });
-          }
-        } catch (err) {
-          console.error(`Failed to fetch portfolio for ${contest.id}`, err);
+      portfolioResults.forEach((result, index) => {
+        const contest = liveContests[index];
+        if (result.status !== 'fulfilled') {
+          console.error(`Failed to fetch portfolio for ${contest.id}`, result.reason);
+          return;
         }
-      }
+
+        const portfolio = result.value;
+
+        const totalPortfolioValue = Number(portfolio?.totalPortfolioValue || 0);
+        const cashBalance = Number(portfolio?.cashBalance || 0);
+
+        if (cashBalance > 0 && totalPortfolioValue > 0 && (cashBalance / totalPortfolioValue) > 0.4) {
+          newAlerts.push({
+            id: `cash-${contest.id}`,
+            tone: 'warning',
+            icon: Wallet,
+            title: 'Idle cash detected',
+            message: `You have ${formatCurrency(cashBalance)} uninvested.`,
+            contestId: contest.id
+          });
+        }
+
+        if (portfolio && portfolio.holdings) {
+          portfolio.holdings.forEach(h => {
+            const totalCost = h.quantity * h.averageBuyPrice;
+            if (totalCost > 0) {
+              const pctChange = (h.profit / totalCost) * 100;
+              if (pctChange <= -5) {
+                newAlerts.push({
+                  id: `drop-${h.id}`,
+                  tone: 'error',
+                  icon: TrendingDown,
+                  title: 'Position alert',
+                  message: `${h.stockSymbol.replace('.NS', '')} dropped ${Math.abs(pctChange).toFixed(1)}%.`,
+                  contestId: contest.id
+                });
+              } else if (pctChange >= 5) {
+                newAlerts.push({
+                  id: `up-${h.id}`,
+                  tone: 'success',
+                  icon: TrendingUp,
+                  title: 'Momentum alert',
+                  message: `${h.stockSymbol.replace('.NS', '')} is up ${pctChange.toFixed(1)}%.`,
+                  contestId: contest.id
+                });
+              }
+            }
+          });
+        }
+      });
 
       if (mounted) {
         newAlerts.sort((a, b) => {
@@ -470,11 +499,14 @@ function ActionCenter({ myContests, authFetch, navigate }) {
     return () => clearInterval(interval);
   }, [alerts.length]);
 
-  if (!isLoading && alerts.length === 0) return null;
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [alerts.length]);
 
-  const currentAlert = alerts[currentIndex];
+  const currentAlert = alerts[currentIndex] || alerts[0];
   const activeTone = currentAlert?.tone === 'neutral' ? 'neutral' : (currentAlert?.tone || 'live');
   const cssTone = activeTone === 'neutral' ? 'text-muted' : activeTone;
+  const hasAlert = Boolean(currentAlert);
 
   return (
     <Motion.section
@@ -486,7 +518,7 @@ function ActionCenter({ myContests, authFetch, navigate }) {
     >
       <div 
         className="card card-pad card-interactive" 
-        style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', cursor: 'pointer', minHeight: '8rem' }}
+        style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', cursor: hasAlert ? 'pointer' : 'default', minHeight: '8rem' }}
         onClick={() => currentAlert && navigate(`/contest/${currentAlert.contestId}`)}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
@@ -524,8 +556,17 @@ function ActionCenter({ myContests, authFetch, navigate }) {
               </Motion.div>
             ) : (
               <Motion.div key="loading" style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
-                <BellRing size={18} className="muted" />
-                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Scanning portfolio...</span>
+                {isLoading ? (
+                  <>
+                    <BellRing size={18} className="muted" />
+                    <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>Scanning portfolio...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} color="var(--color-success)" />
+                    <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>No contest alerts right now.</span>
+                  </>
+                )}
               </Motion.div>
             )}
           </AnimatePresence>
@@ -649,6 +690,15 @@ function ContestLobby() {
     }
   };
 
+  const handleCopyInviteCode = async () => {
+    try {
+      await navigator.clipboard.writeText(newlyCreatedContest.inviteCode);
+      toast.success('Copied.');
+    } catch {
+      toast.error('Could not copy code.');
+    }
+  };
+
   const nextContest = grouped.live[0] || grouped.upcoming[0] || availablePublicContests[0];
   const activeLabel = grouped.live.length ? `${grouped.live.length} live now` : `${grouped.upcoming.length} upcoming`;
 
@@ -702,7 +752,7 @@ function ContestLobby() {
         ) : (
           <div className="stack" style={{ gap: 'var(--space-10)' }}>
             <div className="lobby-overview">
-              <StrategyPrompt authFetch={authFetch} onCreate={(data) => { setCreateFormInitialData(data); setShowCreateModal(true); }} />
+              <StrategyPrompt onCreate={(data) => { setCreateFormInitialData(data); setShowCreateModal(true); }} />
               <MarketPulse />
             </div>
 
@@ -769,7 +819,7 @@ function ContestLobby() {
               <p>Share this code with players you want to invite.</p>
               <strong style={{ fontSize: 'var(--text-2xl)', letterSpacing: '0.16em' }}>{newlyCreatedContest.inviteCode}</strong>
             </div>
-            <Button onClick={() => { navigator.clipboard.writeText(newlyCreatedContest.inviteCode); toast.success('Copied.'); }}>Copy code</Button>
+            <Button onClick={handleCopyInviteCode}>Copy code</Button>
           </div>
         ) : (
           <CreateContestForm key={createFormInitialData ? createFormInitialData.id : 'empty'} onSubmit={handleCreateContest} onCancel={() => setShowCreateModal(false)} isLoading={isCreating} initialData={createFormInitialData} />
