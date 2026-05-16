@@ -385,9 +385,13 @@ function ActionCenter({ myContests, authFetch, navigate }) {
 
       myContests.forEach(contest => {
         if (contest.status === 'LIVE') {
+          const start = new Date(contest.startTime.endsWith('Z') ? contest.startTime : `${contest.startTime}Z`);
           const end = new Date(contest.endTime.endsWith('Z') ? contest.endTime : `${contest.endTime}Z`);
+          const totalDuration = end - start;
+          const elapsed = now - start;
           const hoursLeft = (end - now) / (1000 * 60 * 60);
-          if (hoursLeft > 0 && hoursLeft <= 48) {
+
+          if (hoursLeft > 0 && totalDuration > 0 && (elapsed / totalDuration) >= 0.75) {
             newAlerts.push({
               id: `end-${contest.id}`,
               tone: 'warning',
@@ -437,7 +441,7 @@ function ActionCenter({ myContests, authFetch, navigate }) {
             tone: 'warning',
             icon: Wallet,
             title: 'Idle cash detected',
-            message: `You have ${formatCurrency(cashBalance)} uninvested.`,
+            message: `You have ${formatCurrency(Math.round(cashBalance))} uninvested.`,
             contestId: contest.id
           });
         }
