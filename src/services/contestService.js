@@ -94,3 +94,12 @@ export const searchStocks = async (authFetch, query) => {
 export const getSuggestedFormat = async () => {
   return await apiRequest(endpoints.contest.suggestedFormat);
 };
+
+export const getMyAlerts = async (authFetch) => {
+  try {
+    return await authFetch(endpoints.contest.myAlerts);
+  } catch (error) {
+    console.error('getMyAlerts error:', error);
+    return [];
+  }
+};

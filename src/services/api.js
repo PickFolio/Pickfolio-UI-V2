@@ -70,6 +70,7 @@ export const endpoints = {
     quote: (symbol) => `${CONTEST_API_URL}/quote/${encodeURIComponent(symbol)}`,
     search: (query) => `${CONTEST_API_URL}/search?q=${encodeURIComponent(query)}`,
     suggestedFormat: `${CONTEST_API_URL}/suggested-format`,
+    myAlerts: `${CONTEST_API_URL}/my-alerts`,
   },
   marketData: {
     history: (symbol, range = "1mo", interval = "1d") =>

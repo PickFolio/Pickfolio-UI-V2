@@ -11,7 +11,7 @@ import JoinContestForm from './JoinContestForm';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { CardSkeleton } from './ui/Skeleton';
-import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse, getSuggestedFormat, getPortfolio, getMarketTrending } from '../services/contestService';
+import { createContest, getMyContests, getOpenPublicContests, joinContest, joinContestByCode, getMarketPulse, getSuggestedFormat, getPortfolio, getMarketTrending, getMyAlerts } from '../services/contestService';
 import { logoutUser } from '../services/authService';
 
 const formatCurrency = (value) => {
@@ -418,62 +418,31 @@ function ActionCenter({ myContests, authFetch, navigate }) {
       });
 
       const liveContests = myContests.filter(c => c.status === 'LIVE');
-      const portfolioResults = await Promise.allSettled(
-        liveContests.map((contest) => getPortfolio(authFetch, contest.id))
-      );
-      if (!mounted) return;
-
-      portfolioResults.forEach((result, index) => {
-        const contest = liveContests[index];
-        if (result.status !== 'fulfilled') {
-          console.error(`Failed to fetch portfolio for ${contest.id}`, result.reason);
-          return;
-        }
-
-        const portfolio = result.value;
-
-        const totalPortfolioValue = Number(portfolio?.totalPortfolioValue || 0);
-        const cashBalance = Number(portfolio?.cashBalance || 0);
-
-        if (cashBalance > 0 && totalPortfolioValue > 0 && (cashBalance / totalPortfolioValue) > 0.4) {
-          newAlerts.push({
-            id: `cash-${contest.id}`,
-            tone: 'warning',
-            icon: Wallet,
-            title: 'Idle cash detected',
-            message: `You have ${formatCurrency(Math.round(cashBalance))} uninvested.`,
-            contestId: contest.id
+      
+      try {
+        const backendAlerts = await getMyAlerts(authFetch);
+        if (!mounted) return;
+        
+        if (backendAlerts && backendAlerts.length > 0) {
+          backendAlerts.forEach(alert => {
+            let icon = Clock3;
+            if (alert.tone === 'warning') icon = Wallet;
+            else if (alert.tone === 'error') icon = TrendingDown;
+            else if (alert.tone === 'success') icon = TrendingUp;
+            
+            newAlerts.push({
+              id: alert.id,
+              tone: alert.tone,
+              icon: icon,
+              title: alert.title,
+              message: alert.message,
+              contestId: alert.contestId
+            });
           });
         }
-
-        if (portfolio && portfolio.holdings) {
-          portfolio.holdings.forEach(h => {
-            const totalCost = h.quantity * h.averageBuyPrice;
-            if (totalCost > 0) {
-              const pctChange = (h.profit / totalCost) * 100;
-              if (pctChange <= -5) {
-                newAlerts.push({
-                  id: `drop-${h.id}`,
-                  tone: 'error',
-                  icon: TrendingDown,
-                  title: 'Position alert',
-                  message: `${h.stockSymbol.replace('.NS', '')} dropped ${Math.abs(pctChange).toFixed(1)}%.`,
-                  contestId: contest.id
-                });
-              } else if (pctChange >= 5) {
-                newAlerts.push({
-                  id: `up-${h.id}`,
-                  tone: 'success',
-                  icon: TrendingUp,
-                  title: 'Momentum alert',
-                  message: `${h.stockSymbol.replace('.NS', '')} is up ${pctChange.toFixed(1)}%.`,
-                  contestId: contest.id
-                });
-              }
-            }
-          });
-        }
-      });
+      } catch (err) {
+        console.error('Failed to fetch backend alerts', err);
+      }
 
       if (mounted) {
         newAlerts.sort((a, b) => {
