@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
-import { ArrowLeft, BarChart3, Medal, RefreshCw, Trophy, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, BarChart3, Medal, RefreshCw, Trophy, Users, Wallet, Bot } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/Skeleton';
@@ -82,9 +82,14 @@ function LeaderboardRow({ player }) {
     <div className={player.isCurrentUser ? 'leaderboard-rank-row leaderboard-rank-row-active' : 'leaderboard-rank-row'}>
       <span className="rank-pill">{player.rank}</span>
       <div className="leaderboard-player">
-        <span className="leaderboard-avatar leaderboard-avatar-sm" aria-hidden="true">{getInitials(player.username)}</span>
+        <span className="leaderboard-avatar leaderboard-avatar-sm" aria-hidden="true">
+          {player.isBot ? <Bot size={16} /> : getInitials(player.username)}
+        </span>
         <div>
-          <strong>{player.username}</strong>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {player.username}
+            {player.isBot && <Badge tone="neutral" style={{ padding: '0 4px', fontSize: '0.65rem' }}>{player.personaType?.replace('_', ' ')}</Badge>}
+          </strong>
           {player.isCurrentUser ? <p className="muted" style={{ margin: 0, fontSize: 'var(--text-sm)' }}>Your position</p> : null}
         </div>
       </div>

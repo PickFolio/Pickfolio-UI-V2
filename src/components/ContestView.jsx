@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Client as StompClient } from '@stomp/stompjs';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Activity, ArrowLeft, ArrowRight, BarChart3, CheckCircle2, LineChart, Lock, Search, ShieldCheck, Trophy, Wallet, Home, Briefcase, Zap, Clock, PieChart, Info } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BarChart3, CheckCircle2, LineChart, Lock, Search, ShieldCheck, Trophy, Wallet, Home, Briefcase, Zap, Clock, PieChart, Info, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import useAuthFetch from '../hooks/useAuthFetch';
 import { executeTransaction, getContestDetails, getLeaderboard, getPortfolio, getStockHistory, getStockQuote, searchStocks, validateStockSymbol } from '../services/contestService';
@@ -295,8 +295,12 @@ function LeaderboardPanel({ leaderboard, currentParticipantId, contestId }) {
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <span className="rank-pill" style={{ width: '36px', height: '36px', fontSize: 'var(--text-md)', background: index < 3 ? 'var(--color-accent)' : 'var(--color-surface-2)', color: index < 3 ? '#fff' : 'var(--color-text-muted)' }}>{index + 1}</span>
                   <div style={{ marginLeft: 'var(--space-3)' }}>
-                    <strong style={{ fontSize: 'var(--text-lg)', display: 'block', lineHeight: 1.2 }}>{player.username}</strong>
+                    <strong style={{ fontSize: 'var(--text-lg)', display: 'flex', alignItems: 'center', gap: '6px', lineHeight: 1.2 }}>
+                      {player.username}
+                      {player.isBot && <Bot size={16} color="var(--color-accent)" title={`AI Bot (${player.personaType || 'General'})`} />}
+                    </strong>
                     {isMe && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent)', fontWeight: 'bold' }}>YOU</span>}
+                    {player.isBot && !isMe && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{player.personaType?.replace('_', ' ')} Strategy</span>}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
